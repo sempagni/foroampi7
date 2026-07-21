@@ -1,0 +1,28 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #ffffff;
+  --text-primary: #111111;
+  --text-body: #3a3a3a;
+  --accent: #0d7657;
+  --accent-hover: #0a5943;
+  --text-dim: #6b6b6b;
+  --border-subtle: rgba(13, 118, 87, 0.15);
+  --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #ffffff;
+  color: #111111;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  font-family: var(--font-body), sans-serif;
+}
