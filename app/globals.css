@@ -19,6 +19,12 @@ html {
   scroll-behavior: smooth;
 }
 
+#ponentes,
+#boletos,
+#registro {
+  scroll-margin-top: 84px;
+}
+
 body {
   background: #ffffff;
   color: #111111;

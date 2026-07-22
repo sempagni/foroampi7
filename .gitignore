@@ -1,0 +1,17 @@
+node_modules/
+.next/
+*.tsbuildinfo
+public/frames/
+public/hero.mp4
+data/exports/
+.env
+.env.local
+
+# Duplicados y respaldos de trabajo, no usados por la app en producción
+/frames/
+/hero.mp4
+/assets/
+/reference/
+
+# Metadata de macOS
+.DS_Store

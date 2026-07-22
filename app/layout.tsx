@@ -3,6 +3,7 @@ import { Playfair_Display, Inter, Montserrat } from "next/font/google";
 import "./globals.css";
 import MountainWatermark from "./components/MountainWatermark";
 import PageBackground from "./components/PageBackground";
+import Navbar from "./components/Navbar";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -36,6 +37,7 @@ export default function RootLayout({
       <body className={`${playfair.variable} ${inter.variable} ${montserrat.variable}`}>
         <PageBackground />
         <MountainWatermark />
+        <Navbar />
         {children}
       </body>
     </html>

@@ -4,13 +4,12 @@ import { useEffect, useState } from "react";
 import FadeIn from "./FadeIn";
 import { ZONAS, type ZonaId } from "./TicketsSection";
 
-const WHATSAPP_EVENTO = "524492271310";
+const WHATSAPP_EVENTO = "524492287481";
 const TITULAR_CUENTA =
   "Asociación Mexicana de Profesionales Inmobiliarios Sección Ciudad de Aguascalientes AC";
 const BANCO = "INBURSA";
 const NUMERO_CUENTA = "50034698982";
 const CLABE_BANCARIA = "036010500346989828";
-const TARJETA_DEBITO_OXXO = "4658 2858 0062 3435";
 
 type FormState = {
   nombre: string;
@@ -247,7 +246,7 @@ export default function RegistrationSection() {
             </div>
             <div>
               <label htmlFor="zona" style={labelStyle}>
-                Zona
+                Haz clic aquí para elegir tu zona
               </label>
               <select
                 id="zona"
@@ -355,30 +354,11 @@ export default function RegistrationSection() {
               Número de cuenta: {NUMERO_CUENTA}
               <br />
               CLABE interbancaria: {CLABE_BANCARIA}
-            </p>
-          </div>
-
-          <div
-            style={{
-              background: "#ffffff",
-              border: "1px solid var(--border-subtle)",
-              borderRadius: "8px",
-              boxShadow: "var(--card-shadow)",
-              padding: "1.8rem",
-            }}
-          >
-            <h3
-              style={{
-                fontFamily: "var(--font-display), serif",
-                fontSize: "1.4rem",
-                marginBottom: "0.8rem",
-              }}
-            >
-              Depósito en OXXO
-            </h3>
-            <p style={{ color: "var(--text-body)", fontWeight: 300, lineHeight: 1.7 }}>
-              Deposita directo en cualquier sucursal OXXO a la tarjeta de
-              débito {TARJETA_DEBITO_OXXO} ({BANCO}), monto exacto de tu zona.
+              <br />
+              <strong>
+                Envía tu comprobante (captura de pantalla) de la
+                transferencia por WhatsApp.
+              </strong>
             </p>
           </div>
 

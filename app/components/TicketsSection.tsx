@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import FadeIn from "./FadeIn";
 
@@ -109,9 +109,19 @@ function VenueDiagram({
 
 export default function TicketsSection() {
   const [hovered, setHovered] = useState<ZonaId | null>(null);
+  const infoBannerRef = useRef<HTMLDivElement>(null);
+
+  const moverSpotlight = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = infoBannerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty("--mx", `${e.clientX - rect.left}px`);
+    el.style.setProperty("--my", `${e.clientY - rect.top}px`);
+  };
 
   return (
     <section
+      id="boletos"
       style={{
         padding: "clamp(4rem, 10vw, 8rem) clamp(1.5rem, 6vw, 6rem)",
         maxWidth: "1200px",
@@ -163,6 +173,7 @@ export default function TicketsSection() {
           {ZONAS.map((zona, i) => (
             <FadeIn key={zona.id} index={i + 1}>
               <motion.div
+                className="ticket-card"
                 whileHover={{
                   y: -6,
                   scale: 1.02,
@@ -179,6 +190,7 @@ export default function TicketsSection() {
                   padding: "1.6rem",
                   height: "100%",
                   display: "flex",
+                  flexWrap: "wrap",
                   alignItems: "center",
                   gap: "1.3rem",
                 }}
@@ -195,7 +207,7 @@ export default function TicketsSection() {
                     flexShrink: 0,
                   }}
                 />
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <h3
                     style={{
                       fontFamily: "var(--font-display), serif",
@@ -233,6 +245,7 @@ export default function TicketsSection() {
                   </p>
                 </div>
                 <button
+                  className="ticket-card-button"
                   onClick={() => elegirZona(zona.id)}
                   style={{
                     background: "transparent",
@@ -245,6 +258,7 @@ export default function TicketsSection() {
                     cursor: "pointer",
                     fontFamily: "inherit",
                     whiteSpace: "nowrap",
+                    flexShrink: 0,
                     transition: "background 0.25s ease, color 0.25s ease",
                   }}
                   onMouseEnter={(e) => {
@@ -265,38 +279,23 @@ export default function TicketsSection() {
       </div>
 
       <FadeIn index={4}>
-        <p
-          style={{
-            color: "var(--text-body)",
-            fontWeight: 300,
-            lineHeight: 1.7,
-            marginTop: "2.2rem",
-            maxWidth: "70ch",
-          }}
+        <div
+          ref={infoBannerRef}
+          onMouseMove={moverSpotlight}
+          className="tickets-info-banner"
         >
-          Incluye acceso al evento, ponentes, área de networking y expo de
-          stands. No incluye alimentos (hay área de comida, consumo por cuenta
-          propia).
-        </p>
-        <p
-          style={{
-            color: "var(--accent)",
-            fontWeight: 700,
-            fontSize: "clamp(1.6rem, 4vw, 2.2rem)",
-            marginTop: "1rem",
-          }}
-        >
-          650 cupo total
-        </p>
-        <p
-          style={{
-            color: "var(--accent)",
-            fontWeight: 600,
-            marginTop: "0.4rem",
-          }}
-        >
-          La venta corre hasta el día 16 de octubre o hasta agotar cupo.
-        </p>
+          <p className="tickets-info-text">
+            Incluye acceso al foro inmobiliario, recorrido por la zona de
+            stands y patrocinadores, zona de networking y pláticas de
+            nuestros ponentes VIP!
+          </p>
+          <div className="tickets-info-stats">
+            <p className="tickets-info-cupo">Cupo limitado a 650 personas</p>
+            <p className="tickets-info-cierre">
+              Cierre de boletos 13 de Octubre.
+            </p>
+          </div>
+        </div>
       </FadeIn>
 
       <style>{`
@@ -314,6 +313,60 @@ export default function TicketsSection() {
           .tickets-layout {
             grid-template-columns: 1fr;
           }
+        }
+        @media (max-width: 480px) {
+          .ticket-card-button {
+            width: 100%;
+          }
+        }
+        .tickets-info-banner {
+          position: relative;
+          overflow: hidden;
+          background: var(--accent);
+          border-radius: 12px;
+          padding: clamp(1.8rem, 4vw, 2.8rem);
+          margin-top: 2.2rem;
+          --mx: 50%;
+          --my: 50%;
+        }
+        .tickets-info-banner::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(
+            circle 280px at var(--mx) var(--my),
+            rgba(255, 255, 255, 0.16),
+            transparent 70%
+          );
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          pointer-events: none;
+        }
+        .tickets-info-banner:hover::before {
+          opacity: 1;
+        }
+        .tickets-info-text {
+          position: relative;
+          color: rgba(255, 255, 255, 0.92);
+          font-weight: 300;
+          line-height: 1.7;
+        }
+        .tickets-info-stats {
+          position: relative;
+          display: flex;
+          flex-wrap: wrap;
+          gap: clamp(1.5rem, 4vw, 3rem);
+          margin-top: 1.6rem;
+        }
+        .tickets-info-cupo {
+          color: #ffffff;
+          font-weight: 700;
+          font-size: clamp(1.6rem, 4vw, 2.2rem);
+        }
+        .tickets-info-cierre {
+          color: rgba(255, 255, 255, 0.92);
+          font-weight: 600;
+          align-self: flex-end;
         }
       `}</style>
     </section>

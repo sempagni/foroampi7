@@ -3,22 +3,23 @@
 import { useEffect, useState } from "react";
 import FadeIn from "./FadeIn";
 
-// Supuesto a confirmar: el foro inicia a las 9:00 hrs, hora de Aguascalientes
-// (America/Mexico_City, UTC-6 todo el año). Ajustar si se define otra hora.
-const FECHA_EVENTO = new Date("2026-10-16T09:00:00-06:00");
+// Hora confirmada por el cliente: 8:00 hrs, hora de Aguascalientes
+// (America/Mexico_City, UTC-6 todo el año).
+const FECHA_EVENTO = new Date("2026-10-16T08:00:00-06:00");
 
 type Restante = {
   meses: number;
   dias: number;
   horas: number;
   minutos: number;
+  segundos: number;
   terminado: boolean;
 };
 
 function calcularRestante(): Restante {
   const ahora = new Date();
   if (ahora >= FECHA_EVENTO) {
-    return { meses: 0, dias: 0, horas: 0, minutos: 0, terminado: true };
+    return { meses: 0, dias: 0, horas: 0, minutos: 0, segundos: 0, terminado: true };
   }
 
   let meses =
@@ -34,12 +35,13 @@ function calcularRestante(): Restante {
   }
 
   const msRestantes = FECHA_EVENTO.getTime() - cursor.getTime();
-  const minutosTotales = Math.floor(msRestantes / 60000);
-  const dias = Math.floor(minutosTotales / (60 * 24));
-  const horas = Math.floor((minutosTotales % (60 * 24)) / 60);
-  const minutos = minutosTotales % 60;
+  const segundosTotales = Math.floor(msRestantes / 1000);
+  const dias = Math.floor(segundosTotales / 86400);
+  const horas = Math.floor((segundosTotales % 86400) / 3600);
+  const minutos = Math.floor((segundosTotales % 3600) / 60);
+  const segundos = segundosTotales % 60;
 
-  return { meses, dias, horas, minutos, terminado: false };
+  return { meses, dias, horas, minutos, segundos, terminado: false };
 }
 
 const UNIDADES = [
@@ -47,6 +49,7 @@ const UNIDADES = [
   { clave: "dias", etiqueta: "Días" },
   { clave: "horas", etiqueta: "Horas" },
   { clave: "minutos", etiqueta: "Minutos" },
+  { clave: "segundos", etiqueta: "Segundos" },
 ] as const;
 
 export default function CountdownSection() {
@@ -54,7 +57,7 @@ export default function CountdownSection() {
 
   useEffect(() => {
     setRestante(calcularRestante());
-    const id = setInterval(() => setRestante(calcularRestante()), 30000);
+    const id = setInterval(() => setRestante(calcularRestante()), 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -62,8 +65,7 @@ export default function CountdownSection() {
     <section
       style={{
         padding: "clamp(3rem, 7vw, 5rem) clamp(1.5rem, 6vw, 6rem)",
-        maxWidth: "1100px",
-        margin: "0 auto",
+        width: "100%",
       }}
     >
       <FadeIn>
@@ -76,7 +78,7 @@ export default function CountdownSection() {
             textAlign: "center",
           }}
         >
-          Faltan
+          Te esperamos desde las 8:00 hasta las 19:00 hrs.
         </h2>
       </FadeIn>
 
@@ -156,10 +158,16 @@ export default function CountdownSection() {
         }
         @media (max-width: 480px) {
           .countdown-grid {
-            gap: 1rem;
+            flex-wrap: wrap;
+            row-gap: 1.4rem;
+            column-gap: 1rem;
           }
           .countdown-unit {
-            min-width: 3.6rem;
+            min-width: 5rem;
+            flex: 0 0 auto;
+          }
+          .countdown-label {
+            font-size: 0.7rem;
           }
         }
       `}</style>

@@ -1,15 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import FadeIn from "./FadeIn";
 
-const PUNTOS = [
-  "Panorama económico e inmobiliario del Bajío hacia 2026",
-  "Cómo generar alianzas estratégicas que impulsen el crecimiento del mercado",
-  "El impacto del asesor inmobiliario en la atracción de inversión y el desarrollo económico",
-  "Herramientas para identificar nuevas oportunidades de negocio y aumentar tu competitividad",
-  "Casos de éxito y mejores prácticas del sector",
+const PUNTOS: ReactNode[] = [
+  <>
+    Panorama <strong>económico e inmobiliario</strong> del Bajío hacia{" "}
+    <strong>2026</strong>
+  </>,
+  <>
+    Cómo generar <strong>alianzas estratégicas</strong> que impulsen el{" "}
+    <strong>crecimiento del mercado</strong>
+  </>,
+  <>
+    "La vivienda no es para vivir, es para <strong>invertir</strong>"
+    <br />
+    <strong>- Tony Hanna</strong>
+  </>,
+  <>
+    Herramientas para identificar nuevas{" "}
+    <strong>oportunidades de negocio</strong> y aumentar tu{" "}
+    <strong>competitividad</strong>
+  </>,
+  <>
+    <strong>Casos de éxito</strong> y <strong>mejores prácticas</strong> del
+    sector
+  </>,
 ];
 
 export default function AboutSection() {
@@ -48,7 +65,7 @@ export default function AboutSection() {
           transition={{ duration: 0.25 }}
         >
           <div className="book-page book-page-left">
-            <h2 className="book-title">Qué vas a aprender</h2>
+            <h2 className="book-title">Abordaremos temas como...</h2>
             <div className="book-index-row">
               <span className="book-index">{String(index + 1).padStart(2, "0")}</span>
               <span className="book-total">/ {String(total).padStart(2, "0")}</span>
@@ -170,11 +187,14 @@ export default function AboutSection() {
         }
         .book-content {
           color: #ffffff;
-          font-weight: 300;
-          font-size: clamp(1.1rem, 2vw, 1.4rem);
-          line-height: 1.6;
+          font-weight: 400;
+          font-size: clamp(1.35rem, 2.7vw, 1.9rem);
+          line-height: 1.5;
           max-width: 42ch;
           animation: bookContentIn 0.4s cubic-bezier(0.25, 0, 0, 1);
+        }
+        .book-content strong {
+          font-weight: 700;
         }
         @keyframes bookContentIn {
           from {
