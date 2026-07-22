@@ -7,7 +7,7 @@ import FadeIn from "./FadeIn";
 const PONENTES = [
   {
     nombre: "Tony Hanna",
-    rol: "Ponente principal",
+    rol: "Ponente",
     descripcion: "El Tiburón Inmobiliario",
     foto: "/TonyHanna.jpeg",
   },
@@ -126,7 +126,7 @@ function ProximamenteCard() {
           fontSize: "1.4rem",
         }}
       >
-        Pronto revelaremos a otro ponente estrella
+        Pronto revelaremos a nuestro ponente estrella
       </h3>
     </div>
   );
@@ -257,14 +257,12 @@ export default function SpeakersSection() {
 
       <div className="speakers-marquee" ref={marqueeRef}>
         <div className="speakers-track" ref={trackRef}>
-          {tarjetas.map((p, i) => (
-            <SpeakerCard key={`a-${i}`} {...p} />
-          ))}
           <ProximamenteCard key="a-proximamente" />
-          {tarjetas.map((p, i) => (
-            <SpeakerCard key={`b-${i}`} {...p} />
-          ))}
+          <SpeakerCard key="a-mario" {...tarjetas[1]} />
+          <SpeakerCard key="a-tony" {...tarjetas[0]} />
           <ProximamenteCard key="b-proximamente" />
+          <SpeakerCard key="b-mario" {...tarjetas[1]} />
+          <SpeakerCard key="b-tony" {...tarjetas[0]} />
         </div>
       </div>
 
