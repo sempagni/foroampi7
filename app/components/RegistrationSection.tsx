@@ -11,22 +11,36 @@ const BANCO = "INBURSA";
 const NUMERO_CUENTA = "50034698982";
 const CLABE_BANCARIA = "036010500346989828";
 
+// Lada de México para WhatsApp: 52 (país) + 1 (requerido por el formato
+// de WhatsApp para números mexicanos). Ajustar aquí si el requisito cambia.
+const LADA_MEXICO = "521";
+
+const MAX_BOLETOS = 10;
+
 type FormState = {
   nombre: string;
   correo: string;
+  ladaTipo: "MX" | "OTRO";
+  ladaManual: string;
   whatsapp: string;
   empresa: string;
   cargo: string;
   zona: ZonaId;
+  cantidadBoletos: number;
+  asistentes: string[];
 };
 
 const INITIAL: FormState = {
   nombre: "",
   correo: "",
+  ladaTipo: "MX",
+  ladaManual: "",
   whatsapp: "",
   empresa: "",
   cargo: "",
   zona: "A",
+  cantidadBoletos: 1,
+  asistentes: [],
 };
 
 const inputStyle: React.CSSProperties = {
@@ -50,9 +64,16 @@ const labelStyle: React.CSSProperties = {
   fontWeight: 400,
 };
 
+const errorStyle: React.CSSProperties = {
+  color: "var(--accent-hover)",
+  fontSize: "0.85rem",
+  marginTop: "0.4rem",
+};
+
 export default function RegistrationSection() {
   const [form, setForm] = useState<FormState>(INITIAL);
   const [errores, setErrores] = useState<Partial<Record<keyof FormState, string>>>({});
+  const [erroresAsistentes, setErroresAsistentes] = useState<string[]>([]);
   const [enviando, setEnviando] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
   const [errorEnvio, setErrorEnvio] = useState("");
@@ -69,21 +90,62 @@ export default function RegistrationSection() {
   }, []);
 
   const zonaElegida = ZONAS.find((z) => z.id === form.zona) ?? ZONAS[0];
+  const precioTotal = zonaElegida.precio * form.cantidadBoletos;
 
-  const set = (campo: keyof FormState) =>
+  const set = (campo: "nombre" | "correo" | "whatsapp" | "empresa" | "cargo" | "zona" | "ladaManual") =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [campo]: e.target.value }));
+
+  const cambiarLadaTipo = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const valor: "MX" | "OTRO" = e.target.value === "OTRO" ? "OTRO" : "MX";
+    setForm((f) => ({ ...f, ladaTipo: valor }));
+  };
+
+  const cambiarCantidad = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const cantidad = Math.min(MAX_BOLETOS, Math.max(1, Number(e.target.value) || 1));
+    setForm((f) => ({
+      ...f,
+      cantidadBoletos: cantidad,
+      asistentes: Array.from({ length: cantidad - 1 }, (_, i) => f.asistentes[i] ?? ""),
+    }));
+  };
+
+  const cambiarAsistente = (indice: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.target.value;
+    setForm((f) => {
+      const copia = [...f.asistentes];
+      copia[indice] = valor;
+      return { ...f, asistentes: copia };
+    });
+  };
+
+  const ladaCompleta =
+    form.ladaTipo === "MX" ? LADA_MEXICO : form.ladaManual.replace(/\D/g, "");
+  const whatsappCompleto = `${ladaCompleta}${form.whatsapp.replace(/\D/g, "")}`;
 
   const validar = () => {
     const errs: Partial<Record<keyof FormState, string>> = {};
     if (!form.nombre.trim()) errs.nombre = "Escribe tu nombre completo";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo.trim()))
       errs.correo = "Escribe un correo válido";
-    if (!/^\d{10}$/.test(form.whatsapp.replace(/\D/g, "")))
-      errs.whatsapp = "Escribe un WhatsApp de 10 dígitos";
+
+    const numero = form.whatsapp.replace(/\D/g, "");
+    if (form.ladaTipo === "MX") {
+      if (!/^\d{10}$/.test(numero)) errs.whatsapp = "Escribe un WhatsApp de 10 dígitos";
+    } else {
+      if (!form.ladaManual.replace(/\D/g, "")) errs.ladaManual = "Escribe el código de país";
+      if (!numero) errs.whatsapp = "Escribe tu número de WhatsApp";
+    }
+
     if (!form.empresa.trim()) errs.empresa = "Escribe tu empresa";
+
+    const nuevosErroresAsistentes = form.asistentes.map((n) =>
+      !n.trim() ? "Escribe el nombre del asistente" : ""
+    );
+    setErroresAsistentes(nuevosErroresAsistentes);
+
     setErrores(errs);
-    return Object.keys(errs).length === 0;
+    return Object.keys(errs).length === 0 && nuevosErroresAsistentes.every((e) => !e);
   };
 
   const enviar = async (e: React.FormEvent) => {
@@ -96,8 +158,14 @@ export default function RegistrationSection() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
-          whatsapp: form.whatsapp.replace(/\D/g, ""),
+          nombre: form.nombre,
+          correo: form.correo,
+          whatsapp: whatsappCompleto,
+          empresa: form.empresa,
+          cargo: form.cargo,
+          zona: form.zona,
+          cantidadBoletos: form.cantidadBoletos,
+          asistentes: form.asistentes,
         }),
       });
       if (!res.ok) throw new Error("Respuesta no exitosa");
@@ -112,7 +180,7 @@ export default function RegistrationSection() {
   };
 
   const mensajeWhatsApp = encodeURIComponent(
-    `Hola, me acabo de registrar al Foro Bajío 2026, zona ${zonaElegida.id}, adjunto mi comprobante de pago.`
+    `Hola, me acabo de registrar al Foro Bajío 2026, zona ${zonaElegida.id}, ${form.cantidadBoletos} boletos, adjunto mi comprobante de pago.`
   );
 
   return (
@@ -170,11 +238,7 @@ export default function RegistrationSection() {
                 style={inputStyle}
                 autoComplete="name"
               />
-              {errores.nombre && (
-                <p style={{ color: "var(--accent-hover)", fontSize: "0.85rem", marginTop: "0.4rem" }}>
-                  {errores.nombre}
-                </p>
-              )}
+              {errores.nombre && <p style={errorStyle}>{errores.nombre}</p>}
             </div>
             <div>
               <label htmlFor="correo" style={labelStyle}>
@@ -188,30 +252,48 @@ export default function RegistrationSection() {
                 style={inputStyle}
                 autoComplete="email"
               />
-              {errores.correo && (
-                <p style={{ color: "var(--accent-hover)", fontSize: "0.85rem", marginTop: "0.4rem" }}>
-                  {errores.correo}
-                </p>
-              )}
+              {errores.correo && <p style={errorStyle}>{errores.correo}</p>}
             </div>
             <div>
               <label htmlFor="whatsapp" style={labelStyle}>
-                WhatsApp (10 dígitos)
+                WhatsApp
               </label>
-              <input
-                id="whatsapp"
-                type="tel"
-                inputMode="numeric"
-                value={form.whatsapp}
-                onChange={set("whatsapp")}
-                style={inputStyle}
-                autoComplete="tel-national"
-              />
-              {errores.whatsapp && (
-                <p style={{ color: "var(--accent-hover)", fontSize: "0.85rem", marginTop: "0.4rem" }}>
-                  {errores.whatsapp}
-                </p>
-              )}
+              <div className="reg-whatsapp-row">
+                <select
+                  aria-label="Código de país"
+                  value={form.ladaTipo}
+                  onChange={cambiarLadaTipo}
+                  className="reg-lada-select"
+                  style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+                >
+                  <option value="MX">México (+52)</option>
+                  <option value="OTRO">Otro</option>
+                </select>
+                {form.ladaTipo === "OTRO" && (
+                  <input
+                    aria-label="Código de país manual"
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder="Código"
+                    value={form.ladaManual}
+                    onChange={set("ladaManual")}
+                    className="reg-lada-manual"
+                    style={inputStyle}
+                  />
+                )}
+                <input
+                  id="whatsapp"
+                  type="tel"
+                  inputMode="numeric"
+                  value={form.whatsapp}
+                  onChange={set("whatsapp")}
+                  style={{ ...inputStyle, flex: 1, minWidth: 0 }}
+                  autoComplete="tel-national"
+                  placeholder={form.ladaTipo === "MX" ? "10 dígitos" : "Número"}
+                />
+              </div>
+              {errores.ladaManual && <p style={errorStyle}>{errores.ladaManual}</p>}
+              {errores.whatsapp && <p style={errorStyle}>{errores.whatsapp}</p>}
             </div>
             <div>
               <label htmlFor="empresa" style={labelStyle}>
@@ -225,11 +307,7 @@ export default function RegistrationSection() {
                 style={inputStyle}
                 autoComplete="organization"
               />
-              {errores.empresa && (
-                <p style={{ color: "var(--accent-hover)", fontSize: "0.85rem", marginTop: "0.4rem" }}>
-                  {errores.empresa}
-                </p>
-              )}
+              {errores.empresa && <p style={errorStyle}>{errores.empresa}</p>}
             </div>
             <div>
               <label htmlFor="cargo" style={labelStyle}>
@@ -244,23 +322,63 @@ export default function RegistrationSection() {
                 autoComplete="organization-title"
               />
             </div>
-            <div>
-              <label htmlFor="zona" style={labelStyle}>
-                Haz clic aquí para elegir tu zona
-              </label>
-              <select
-                id="zona"
-                value={form.zona}
-                onChange={set("zona")}
-                style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
-              >
-                {ZONAS.map((z) => (
-                  <option key={z.id} value={z.id}>
-                    {z.nombre}, ${z.precio.toLocaleString("es-MX")} MXN ({z.ubicacion.toLowerCase()})
-                  </option>
-                ))}
-              </select>
+            <div className="reg-zona-cantidad-row">
+              <div>
+                <label htmlFor="zona" style={labelStyle}>
+                  Haz clic aquí para elegir tu zona
+                </label>
+                <select
+                  id="zona"
+                  value={form.zona}
+                  onChange={set("zona")}
+                  style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+                >
+                  {ZONAS.map((z) => (
+                    <option key={z.id} value={z.id}>
+                      {z.nombre}, ${z.precio.toLocaleString("es-MX")} MXN ({z.ubicacion.toLowerCase()})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="cantidad" style={labelStyle}>
+                  Cantidad de boletos
+                </label>
+                <select
+                  id="cantidad"
+                  value={form.cantidadBoletos}
+                  onChange={cambiarCantidad}
+                  style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+                >
+                  {Array.from({ length: MAX_BOLETOS }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
+
+            {form.asistentes.length > 0 && (
+              <div style={{ display: "grid", gap: "1.4rem" }}>
+                {form.asistentes.map((nombreAsistente, i) => (
+                  <div key={i}>
+                    <label htmlFor={`asistente-${i}`} style={labelStyle}>
+                      Nombre del asistente {i + 2}
+                    </label>
+                    <input
+                      id={`asistente-${i}`}
+                      type="text"
+                      value={nombreAsistente}
+                      onChange={cambiarAsistente(i)}
+                      style={inputStyle}
+                    />
+                    {erroresAsistentes[i] && <p style={errorStyle}>{erroresAsistentes[i]}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {errorEnvio && (
               <p style={{ color: "var(--accent-hover)", fontSize: "0.95rem" }}>
                 {errorEnvio}
@@ -324,8 +442,13 @@ export default function RegistrationSection() {
                 marginTop: "0.4rem",
               }}
             >
-              ${zonaElegida.precio.toLocaleString("es-MX")} MXN
+              ${precioTotal.toLocaleString("es-MX")} MXN
             </p>
+            {form.cantidadBoletos > 1 && (
+              <p style={{ color: "var(--text-dim)", fontSize: "0.9rem", marginTop: "0.2rem" }}>
+                {form.cantidadBoletos} boletos x ${zonaElegida.precio.toLocaleString("es-MX")} MXN
+              </p>
+            )}
           </div>
 
           <div
@@ -393,6 +516,35 @@ export default function RegistrationSection() {
         </div>
       )}
       </section>
+
+      <style>{`
+        .reg-whatsapp-row {
+          display: flex;
+          gap: 0.6rem;
+          flex-wrap: wrap;
+        }
+        .reg-lada-select {
+          flex: 0 0 auto;
+          width: auto;
+        }
+        .reg-lada-manual {
+          flex: 0 0 90px;
+          width: 90px;
+        }
+        .reg-zona-cantidad-row {
+          display: grid;
+          grid-template-columns: 2fr 1fr;
+          gap: 1rem;
+        }
+        @media (max-width: 560px) {
+          .reg-zona-cantidad-row {
+            grid-template-columns: 1fr;
+          }
+          .reg-lada-select {
+            flex: 1 1 100%;
+          }
+        }
+      `}</style>
     </div>
   );
 }
