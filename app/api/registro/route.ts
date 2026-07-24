@@ -47,6 +47,7 @@ export async function POST(request: Request) {
       typeof correo !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo) ||
       typeof whatsapp !== "string" || !/^\d{5,20}$/.test(whatsapp) ||
       typeof empresa !== "string" || !empresa.trim() ||
+      typeof cargo !== "string" || !cargo.trim() ||
       (zona !== "A" && zona !== "B" && zona !== "C") ||
       !Number.isInteger(cantidad) || cantidad < 1 || cantidad > MAX_BOLETOS ||
       !asistentesValidos

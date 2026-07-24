@@ -292,7 +292,7 @@ export default function TicketsSection() {
           <div className="tickets-info-stats">
             <p className="tickets-info-cupo">Cupo limitado a 650 personas</p>
             <p className="tickets-info-cierre">
-              Cierre de boletos 13 de Octubre.
+              Cierre de boletos 10 de Octubre.
             </p>
           </div>
         </div>

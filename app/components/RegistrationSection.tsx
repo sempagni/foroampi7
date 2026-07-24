@@ -138,6 +138,7 @@ export default function RegistrationSection() {
     }
 
     if (!form.empresa.trim()) errs.empresa = "Escribe tu empresa";
+    if (!form.cargo.trim()) errs.cargo = "Escribe tu cargo en la empresa";
 
     const nuevosErroresAsistentes = form.asistentes.map((n) =>
       !n.trim() ? "Escribe el nombre del asistente" : ""
@@ -311,7 +312,7 @@ export default function RegistrationSection() {
             </div>
             <div>
               <label htmlFor="cargo" style={labelStyle}>
-                Cargo (opcional)
+                Cargo en la empresa
               </label>
               <input
                 id="cargo"
@@ -321,6 +322,7 @@ export default function RegistrationSection() {
                 style={inputStyle}
                 autoComplete="organization-title"
               />
+              {errores.cargo && <p style={errorStyle}>{errores.cargo}</p>}
             </div>
             <div className="reg-zona-cantidad-row">
               <div>
