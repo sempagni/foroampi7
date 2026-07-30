@@ -5,6 +5,7 @@
 }
 
 :root {
+  color-scheme: light;
   --bg: #ffffff;
   --text-primary: #111111;
   --text-body: #3a3a3a;

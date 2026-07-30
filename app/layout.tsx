@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Inter, Montserrat } from "next/font/google";
 import "./globals.css";
 import MountainWatermark from "./components/MountainWatermark";
@@ -27,6 +27,13 @@ export const metadata: Metadata = {
   title: "Foro Regional Inmobiliario Bajío 2026, AMPI Aguascalientes",
   description:
     "1er Foro Regional Inmobiliario, Región 7 Centro. San Luis Potosí, Aguascalientes y Zacatecas. Sede 2026: Aguascalientes.",
+};
+
+// El sitio es de tema claro únicamente. Sin esto, algunos navegadores
+// (sobre todo Chrome en Android) fuerzan un "modo oscuro" automático
+// sobre sitios que no lo declaran, mostrando el fondo gris en vez de blanco.
+export const viewport: Viewport = {
+  colorScheme: "light",
 };
 
 export default function RootLayout({
