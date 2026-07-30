@@ -64,6 +64,14 @@ export default function VenueVideoSection() {
       </FadeIn>
 
       <FadeIn index={2}>
+        <img
+          src="/logo-buro-congresos.png"
+          alt="Buró de Congresos y Visitantes de Aguascalientes"
+          className="venue-buro-logo"
+        />
+      </FadeIn>
+
+      <FadeIn index={3}>
         <p className="venue-video-caption">
           16 de octubre de 2026, Centro de Convenciones Isla San Marcos,
           Aguascalientes
@@ -86,6 +94,12 @@ export default function VenueVideoSection() {
           width: 100%;
           height: 100%;
           border: 0;
+        }
+        .venue-buro-logo {
+          display: block;
+          margin: 2rem auto 0;
+          width: min(100%, 420px);
+          height: auto;
         }
         .venue-video-caption {
           text-align: center;
