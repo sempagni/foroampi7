@@ -113,46 +113,6 @@ function SpeakerCard({
   );
 }
 
-function ProximamenteCard() {
-  return (
-    <div
-      className="speaker-card"
-      style={{
-        background: "#ffffff",
-        border: "1px dashed var(--border-subtle)",
-        borderRadius: "8px",
-        boxShadow: "var(--card-shadow)",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        textAlign: "center",
-        padding: "2rem",
-        gap: "0.7rem",
-      }}
-    >
-      <span
-        style={{
-          fontFamily: "var(--font-heading), sans-serif",
-          fontSize: "2.2rem",
-          color: "var(--accent)",
-        }}
-      >
-        ?
-      </span>
-      <h3
-        style={{
-          fontFamily: "var(--font-heading), sans-serif",
-          fontWeight: 700,
-          fontSize: "1.4rem",
-        }}
-      >
-        Pronto revelaremos a nuestro ponente estrella
-      </h3>
-    </div>
-  );
-}
-
 export default function SpeakersSection() {
   const tarjetas = [...PONENTES];
   const marqueeRef = useRef<HTMLDivElement>(null);
@@ -287,12 +247,10 @@ export default function SpeakersSection() {
       <div className="speakers-marquee" ref={marqueeRef}>
         <div className="speakers-track" ref={trackRef}>
           <SpeakerCard key="a-moris" {...tarjetas[2]} />
-          <ProximamenteCard key="a-proximamente" />
           <SpeakerCard key="a-mario" {...tarjetas[1]} />
           <SpeakerCard key="a-tony" {...tarjetas[0]} />
           <SpeakerCard key="a-lorena" {...tarjetas[3]} />
           <SpeakerCard key="b-moris" {...tarjetas[2]} />
-          <ProximamenteCard key="b-proximamente" />
           <SpeakerCard key="b-mario" {...tarjetas[1]} />
           <SpeakerCard key="b-tony" {...tarjetas[0]} />
           <SpeakerCard key="b-lorena" {...tarjetas[3]} />
