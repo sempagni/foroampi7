@@ -16,7 +16,7 @@ const PUNTOS: ReactNode[] = [
   <>
     "La vivienda no es para vivir, es para <strong>invertir</strong>"
     <br />
-    <strong>- Tony Hanna</strong>
+    <strong>Tony Hanna</strong>
   </>,
   <>
     Herramientas para identificar nuevas{" "}
