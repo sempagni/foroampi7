@@ -17,6 +17,18 @@ const PONENTES = [
     descripcion: "Head of Growth, MICA",
     foto: "/MarioGranillo.jpeg",
   },
+  {
+    nombre: "Moris Dieck",
+    rol: "Ponente Principal",
+    descripcion: "Conferencista y economista",
+    foto: "/MorisDieck.jpg",
+  },
+  {
+    nombre: "Lorena Goca",
+    rol: "Ponente",
+    descripcion: "Líder en Bienes Raíces, Inversión y Marketing Inmobiliario",
+    foto: "/LorenaGoca.jpeg",
+  },
 ];
 
 const VELOCIDAD_PX_POR_SEG = 40;
@@ -36,12 +48,18 @@ function SpeakerCard({
         borderRadius: "8px",
         boxShadow: "var(--card-shadow)",
         overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      <div style={{ position: "relative", height: "220px" }}>
+      <div style={{ position: "relative", flex: "0 0 220px" }}>
         <Image
           src={foto}
-          alt={`${nombre}, ${descripcion}, ponente del foro`}
+          alt={
+            descripcion
+              ? `${nombre}, ${descripcion}, ponente del foro`
+              : `${nombre}, ponente del foro`
+          }
           fill
           sizes="320px"
           draggable={false}
@@ -52,6 +70,8 @@ function SpeakerCard({
         style={{
           background: "var(--accent)",
           padding: "1.6rem",
+          flex: "1 1 auto",
+          minHeight: 0,
         }}
       >
         <span
@@ -77,15 +97,17 @@ function SpeakerCard({
         >
           {nombre}
         </h3>
-        <p
-          style={{
-            color: "rgba(255,255,255,0.9)",
-            fontWeight: 300,
-            fontSize: "1rem",
-          }}
-        >
-          {descripcion}
-        </p>
+        {descripcion && (
+          <p
+            style={{
+              color: "rgba(255,255,255,0.9)",
+              fontWeight: 300,
+              fontSize: "1rem",
+            }}
+          >
+            {descripcion}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -107,7 +129,6 @@ function ProximamenteCard() {
         textAlign: "center",
         padding: "2rem",
         gap: "0.7rem",
-        height: "324px",
       }}
     >
       <span
@@ -142,7 +163,15 @@ export default function SpeakersSection() {
     const track = trackRef.current;
     if (!marquee || !track) return;
 
-    let mitadAncho = track.scrollWidth / 2;
+    // El track duplica la lista completa. El ciclo real es la mitad del ancho
+    // MAS un gap: scrollWidth solo cuenta los gaps INTERNOS (n-1), asi que
+    // dividir entre dos deja medio gap fuera y la vuelta salta cada ciclo.
+    const medirCiclo = () => {
+      const gap = parseFloat(getComputedStyle(track).columnGap || "0") || 0;
+      return (track.scrollWidth + gap) / 2;
+    };
+
+    let mitadAncho = medirCiclo();
     let distancia = 0;
     let pausado = false;
     let arrastrando = false;
@@ -206,7 +235,7 @@ export default function SpeakersSection() {
     };
 
     const onResize = () => {
-      mitadAncho = track.scrollWidth / 2;
+      mitadAncho = medirCiclo();
       distancia = envolver(distancia);
     };
 
@@ -257,12 +286,16 @@ export default function SpeakersSection() {
 
       <div className="speakers-marquee" ref={marqueeRef}>
         <div className="speakers-track" ref={trackRef}>
+          <SpeakerCard key="a-moris" {...tarjetas[2]} />
           <ProximamenteCard key="a-proximamente" />
           <SpeakerCard key="a-mario" {...tarjetas[1]} />
           <SpeakerCard key="a-tony" {...tarjetas[0]} />
+          <SpeakerCard key="a-lorena" {...tarjetas[3]} />
+          <SpeakerCard key="b-moris" {...tarjetas[2]} />
           <ProximamenteCard key="b-proximamente" />
           <SpeakerCard key="b-mario" {...tarjetas[1]} />
           <SpeakerCard key="b-tony" {...tarjetas[0]} />
+          <SpeakerCard key="b-lorena" {...tarjetas[3]} />
         </div>
       </div>
 
@@ -292,6 +325,7 @@ export default function SpeakersSection() {
         .speaker-card {
           flex: 0 0 auto;
           width: min(85vw, 320px);
+          height: 400px;
           transition: transform 0.25s ease, box-shadow 0.25s ease;
         }
         .speakers-marquee:not(.is-dragging) .speaker-card:hover {
