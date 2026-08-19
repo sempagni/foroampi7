@@ -8,6 +8,47 @@ export const runtime = "nodejs";
 const EXPORT_DIR = path.join(process.cwd(), "data", "exports");
 const MAX_BOLETOS = 10;
 
+// Almacén principal: una hoja de cálculo de Google, vía un Apps Script que
+// además manda el aviso por correo. Vive fuera del servidor a propósito: la
+// carpeta de la app se reemplaza en cada redespliegue y los xlsx que se
+// escribían aquí se perdían completos.
+const WEBHOOK_URL = process.env.REGISTROS_WEBHOOK_URL;
+const WEBHOOK_SECRETO = process.env.REGISTROS_WEBHOOK_SECRET;
+const WEBHOOK_TIMEOUT_MS = 10000;
+
+async function enviarAGoogle(filas: Record<string, string>[]): Promise<boolean> {
+  if (!WEBHOOK_URL || !WEBHOOK_SECRETO) {
+    console.error("[registro] Falta REGISTROS_WEBHOOK_URL o REGISTROS_WEBHOOK_SECRET");
+    return false;
+  }
+
+  // Dos intentos: Apps Script devuelve errores transitorios de vez en cuando.
+  for (let intento = 1; intento <= 2; intento++) {
+    const control = new AbortController();
+    const alarma = setTimeout(() => control.abort(), WEBHOOK_TIMEOUT_MS);
+    try {
+      const res = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ secreto: WEBHOOK_SECRETO, accion: "guardar", filas }),
+        redirect: "follow",
+        signal: control.signal,
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const datos = await res.json();
+      if (!datos || datos.ok !== true) {
+        throw new Error(String(datos && datos.error ? datos.error : "respuesta sin ok"));
+      }
+      return true;
+    } catch (e) {
+      console.error(`[registro] Google falló en el intento ${intento}:`, e);
+    } finally {
+      clearTimeout(alarma);
+    }
+  }
+  return false;
+}
+
 // Supuesto a confirmar: la fecha del archivo se calcula en zona horaria
 // America/Mexico_City sin importar dónde corra el servidor.
 function fechaHoy(): string {
@@ -80,54 +121,74 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Datos inválidos" }, { status: 400 });
     }
 
-    await enCola(() => {
-      fs.mkdirSync(EXPORT_DIR, { recursive: true });
-      const archivo = path.join(EXPORT_DIR, `registros_${fechaHoy()}.xlsx`);
+    const fechaYHora = new Intl.DateTimeFormat("es-MX", {
+      timeZone: "America/Mexico_City",
+      dateStyle: "short",
+      timeStyle: "medium",
+    }).format(new Date());
 
-      let registros: Record<string, unknown>[] = [];
-      if (fs.existsSync(archivo)) {
-        const libro = XLSX.read(fs.readFileSync(archivo), { type: "buffer" });
-        const hoja = libro.Sheets[libro.SheetNames[0]];
-        registros = XLSX.utils.sheet_to_json(hoja);
-      }
+    const idCompra = generarIdCompra();
+    const nombresPorBoleto = [
+      nombre.trim(),
+      ...(cantidad > 1 ? (asistentes as string[]).map((n) => n.trim()) : []),
+    ];
 
-      const fechaYHora = new Intl.DateTimeFormat("es-MX", {
-        timeZone: "America/Mexico_City",
-        dateStyle: "short",
-        timeStyle: "medium",
-      }).format(new Date());
+    const filasNuevas: Record<string, string>[] = [];
+    for (let i = 0; i < cantidad; i++) {
+      filasNuevas.push({
+        "Fecha y hora": fechaYHora,
+        Nombre: nombresPorBoleto[i],
+        Correo: correo.trim(),
+        WhatsApp: whatsapp,
+        Empresa: empresa.trim(),
+        Cargo: cargo.trim(),
+        Zona: zona,
+        id_compra: idCompra,
+        boleto_numero: `${i + 1} de ${cantidad}`,
+      });
+    }
 
-      const idCompra = generarIdCompra();
-      const nombresPorBoleto = [
-        nombre.trim(),
-        ...(cantidad > 1 ? (asistentes as string[]).map((n) => n.trim()) : []),
-      ];
+    const guardadoEnGoogle = await enviarAGoogle(filasNuevas);
 
-      for (let i = 0; i < cantidad; i++) {
-        registros.push({
-          "Fecha y hora": fechaYHora,
-          Nombre: nombresPorBoleto[i],
-          Correo: correo.trim(),
-          WhatsApp: whatsapp,
-          Empresa: empresa.trim(),
-          Cargo: typeof cargo === "string" ? cargo.trim() : "",
-          Zona: zona,
-          id_compra: idCompra,
-          boleto_numero: `${i + 1} de ${cantidad}`,
-        });
-      }
+    // Copia local de emergencia. Sobrevive sólo hasta el próximo redespliegue,
+    // así que no es un almacén: es la red que atrapa un registro si Google
+    // estuviera caído justo en ese momento.
+    try {
+      await enCola(() => {
+        fs.mkdirSync(EXPORT_DIR, { recursive: true });
+        const archivo = path.join(EXPORT_DIR, `registros_${fechaHoy()}.xlsx`);
 
-      const hojaNueva = XLSX.utils.json_to_sheet(registros);
-      const libroNuevo = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(libroNuevo, hojaNueva, "Registros");
-      const buffer = XLSX.write(libroNuevo, { type: "buffer", bookType: "xlsx" });
+        let registros: Record<string, unknown>[] = [];
+        if (fs.existsSync(archivo)) {
+          const libro = XLSX.read(fs.readFileSync(archivo), { type: "buffer" });
+          const hoja = libro.Sheets[libro.SheetNames[0]];
+          registros = XLSX.utils.sheet_to_json(hoja);
+        }
 
-      // Escritura atómica: si el proceso muere a media escritura, el .xlsx
-      // original queda intacto en vez de truncado.
-      const temporal = `${archivo}.tmp`;
-      fs.writeFileSync(temporal, buffer);
-      fs.renameSync(temporal, archivo);
-    });
+        registros.push(...filasNuevas);
+
+        const hojaNueva = XLSX.utils.json_to_sheet(registros);
+        const libroNuevo = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(libroNuevo, hojaNueva, "Registros");
+        const buffer = XLSX.write(libroNuevo, { type: "buffer", bookType: "xlsx" });
+
+        // Escritura atómica: si el proceso muere a media escritura, el .xlsx
+        // original queda intacto en vez de truncado.
+        const temporal = `${archivo}.tmp`;
+        fs.writeFileSync(temporal, buffer);
+        fs.renameSync(temporal, archivo);
+      });
+    } catch (e) {
+      console.error("[registro] Falló la copia local:", e);
+      // Si Google sí recibió el registro, esto no es motivo para rechazarlo.
+      if (!guardadoEnGoogle) throw e;
+    }
+
+    if (!guardadoEnGoogle) {
+      console.error(
+        `[registro] ATENCIÓN: la compra ${idCompra} NO llegó a Google, sólo quedó en la copia local.`
+      );
+    }
 
     return NextResponse.json({ ok: true });
   } catch {
