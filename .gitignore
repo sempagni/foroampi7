@@ -15,3 +15,7 @@ data/exports/
 
 # Metadata de macOS
 .DS_Store
+
+# Salidas del reporte semanal: contienen datos personales de registrados
+reportes/
+data/cache-registros/

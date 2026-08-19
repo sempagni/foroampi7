@@ -1,0 +1,403 @@
+#!/usr/bin/env node
+"use strict";
+
+// Reporte semanal de registros del Foro Bajío 2026.
+//
+// Los registros no viven en una base de datos: la ruta /api/registro escribe
+// un xlsx por día en data/exports/ del servidor (Hostinger). El único acceso
+// remoto es /api/registro/export?date=AAAA-MM-DD&key=..., que entrega un solo
+// día por petición, así que este script recorre día por día.
+//
+// Cada día ya cerrado es inmutable (los registros sólo se agregan al archivo
+// del día en curso), por eso se guarda una copia local en data/cache-registros
+// y el acumulado no vuelve a descargar lo que ya bajó.
+
+const fs = require("fs");
+const path = require("path");
+const XLSX = require("xlsx");
+
+const RAIZ = path.resolve(__dirname, "..");
+const DIR_REPORTES = process.env.REGISTROS_REPORTES || path.join(RAIZ, "reportes");
+const DIR_CACHE = process.env.REGISTROS_CACHE || path.join(RAIZ, "data", "cache-registros");
+const ZONA = "America/Mexico_City";
+
+// --local: no sale a la red, sólo lee los xlsx que ya estén en DIR_CACHE.
+// Sirve cuando la clave del servidor no funciona y los archivos se bajaron
+// a mano desde el administrador de archivos de Hostinger.
+let SOLO_LOCAL = false;
+
+const COLUMNAS = [
+  "Fecha y hora",
+  "Nombre",
+  "Correo",
+  "WhatsApp",
+  "Empresa",
+  "Cargo",
+  "Zona",
+  "id_compra",
+  "boleto_numero",
+];
+
+// ---------------------------------------------------------------- entorno
+
+function cargarEnv() {
+  for (const nombre of [".env.local", ".env"]) {
+    const ruta = path.join(RAIZ, nombre);
+    if (!fs.existsSync(ruta)) continue;
+    for (const linea of fs.readFileSync(ruta, "utf8").split(/\r?\n/)) {
+      const m = linea.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+      if (!m || linea.trim().startsWith("#")) continue;
+      let valor = m[2];
+      if (
+        (valor.startsWith('"') && valor.endsWith('"')) ||
+        (valor.startsWith("'") && valor.endsWith("'"))
+      ) {
+        valor = valor.slice(1, -1);
+      }
+      if (process.env[m[1]] === undefined) process.env[m[1]] = valor;
+    }
+  }
+}
+
+// ------------------------------------------------------------------ fechas
+
+function hoyEnMexico() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZONA,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+// Se usa mediodía UTC para que sumar días nunca cruce un cambio de horario.
+function sumarDias(iso, n) {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+function rangoDias(desde, hasta) {
+  const dias = [];
+  for (let d = desde; d <= hasta; d = sumarDias(d, 1)) dias.push(d);
+  return dias;
+}
+
+function fechaLarga(iso) {
+  return new Intl.DateTimeFormat("es-MX", {
+    timeZone: "UTC",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${iso}T12:00:00Z`));
+}
+
+// ------------------------------------------------------------------ datos
+
+async function filasDelDia(dia, base, clave) {
+  const archivoCache = path.join(DIR_CACHE, `registros_${dia}.xlsx`);
+  const marcaVacio = path.join(DIR_CACHE, `registros_${dia}.sin-registros`);
+
+  // El archivo del día en curso todavía puede recibir registros, así que ese
+  // día nunca se cachea: se pide de nuevo en cada corrida.
+  const enCurso = dia >= hoyEnMexico();
+
+  if (!enCurso && fs.existsSync(marcaVacio)) return [];
+
+  let buffer;
+  if (fs.existsSync(archivoCache) && (!enCurso || SOLO_LOCAL)) {
+    buffer = fs.readFileSync(archivoCache);
+  } else if (SOLO_LOCAL) {
+    // Sin copia local de ese día se asume que no hubo registros.
+    return [];
+  } else {
+    const url = `${base}/api/registro/export?date=${dia}&key=${encodeURIComponent(clave)}`;
+    let res;
+    try {
+      res = await fetch(url, { redirect: "follow" });
+    } catch (e) {
+      throw new Error(
+        `No se pudo conectar con ${base} al pedir el ${dia}. Revisa tu internet o si el sitio está caído. Detalle: ${e.message}`
+      );
+    }
+    if (res.status === 401) {
+      throw new Error(
+        "El servidor rechazó la clave (401). Verifica que EXPORT_ACCESS_KEY en .env.local sea la misma que está configurada en Hostinger."
+      );
+    }
+    if (res.status === 404) {
+      if (!enCurso) fs.writeFileSync(marcaVacio, "");
+      return [];
+    }
+    if (!res.ok) {
+      throw new Error(`El servidor respondió ${res.status} al pedir el ${dia}.`);
+    }
+    buffer = Buffer.from(await res.arrayBuffer());
+    if (!enCurso) fs.writeFileSync(archivoCache, buffer);
+  }
+
+  const libro = XLSX.read(buffer, { type: "buffer" });
+  const hoja = libro.Sheets[libro.SheetNames[0]];
+  if (!hoja) return [];
+  const filas = XLSX.utils.sheet_to_json(hoja, { defval: "" });
+
+  return filas.map((f, i) => ({
+    dia,
+    orden: i,
+    "Fecha y hora": String(f["Fecha y hora"] ?? ""),
+    Nombre: String(f["Nombre"] ?? ""),
+    Correo: String(f["Correo"] ?? ""),
+    WhatsApp: String(f["WhatsApp"] ?? ""),
+    Empresa: String(f["Empresa"] ?? ""),
+    Cargo: String(f["Cargo"] ?? ""),
+    Zona: String(f["Zona"] ?? ""),
+    id_compra: String(f["id_compra"] ?? ""),
+    boleto_numero: String(f["boleto_numero"] ?? ""),
+  }));
+}
+
+async function filasDeRango(dias, base, clave) {
+  const todas = [];
+  for (const dia of dias) {
+    const filas = await filasDelDia(dia, base, clave);
+    todas.push(...filas);
+  }
+  todas.sort((a, b) => (a.dia === b.dia ? a.orden - b.orden : a.dia < b.dia ? -1 : 1));
+  return todas;
+}
+
+// -------------------------------------------------------------------- CSV
+
+function campoCsv(valor) {
+  const s = String(valor ?? "");
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function escribirCsv(ruta, filas) {
+  const lineas = [COLUMNAS.join(",")];
+  for (const f of filas) {
+    lineas.push(COLUMNAS.map((c) => campoCsv(f[c])).join(","));
+  }
+  // BOM para que Excel en español abra los acentos correctamente.
+  fs.writeFileSync(ruta, "﻿" + lineas.join("\r\n") + "\r\n", "utf8");
+}
+
+function escribirXlsx(ruta, filas) {
+  const hoja = XLSX.utils.json_to_sheet(
+    filas.map((f) => Object.fromEntries(COLUMNAS.map((c) => [c, f[c]]))),
+    { header: COLUMNAS }
+  );
+  hoja["!cols"] = [20, 28, 30, 16, 26, 20, 6, 20, 12].map((wch) => ({ wch }));
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, "Registros");
+  XLSX.writeFile(libro, ruta);
+}
+
+// ----------------------------------------------------------------- resumen
+
+function num(n) {
+  return n.toLocaleString("es-MX");
+}
+
+function comparacion(actual, previa) {
+  if (previa === 0 && actual === 0) return "igual que la semana anterior (también 0)";
+  if (previa === 0) return `+${num(actual)} contra 0 de la semana anterior`;
+  const dif = actual - previa;
+  const pct = Math.round((dif / previa) * 100);
+  if (dif === 0) return `igual que la semana anterior (${num(previa)})`;
+  const signo = dif > 0 ? "+" : "";
+  return `${signo}${num(dif)} (${signo}${pct}%) contra ${num(previa)} de la semana anterior`;
+}
+
+function separador() {
+  return "-".repeat(64);
+}
+
+// -------------------------------------------------------------------- main
+
+// Modo --todo: el padrón completo desde el primer registro hasta hoy.
+async function reporteCompleto(base, clave, inicio) {
+  const hoy = hoyEnMexico();
+  const filas = await filasDeRango(rangoDias(inicio, hoy), base, clave);
+
+  const archivoCsv = path.join(DIR_REPORTES, `registros-completo-${hoy}.csv`);
+  const archivoXlsx = path.join(DIR_REPORTES, `registros-completo-${hoy}.xlsx`);
+  escribirCsv(archivoCsv, filas);
+  escribirXlsx(archivoXlsx, filas);
+
+  const compras = new Set(filas.map((f) => f.id_compra).filter(Boolean));
+  const correos = new Set(filas.map((f) => f.Correo.trim().toLowerCase()).filter(Boolean));
+
+  const porZona = new Map();
+  for (const f of filas) {
+    const z = f.Zona || "(sin zona)";
+    if (!porZona.has(z)) porZona.set(z, { personas: 0, compras: new Set() });
+    const acc = porZona.get(z);
+    acc.personas++;
+    if (f.id_compra) acc.compras.add(f.id_compra);
+  }
+
+  const porDia = new Map();
+  for (const f of filas) porDia.set(f.dia, (porDia.get(f.dia) ?? 0) + 1);
+
+  console.log("");
+  console.log("PADRÓN COMPLETO DE REGISTROS, Foro Bajío 2026");
+  console.log(`Desde ${inicio} hasta ${hoy}, hora de Ciudad de México`);
+  console.log(separador());
+  console.log(`Personas registradas (boletos) : ${num(filas.length)}`);
+  console.log(`Compras distintas              : ${num(compras.size)}`);
+  console.log(`Correos distintos              : ${num(correos.size)}`);
+  console.log(separador());
+
+  if (filas.length === 0) {
+    console.log("");
+    console.log("Todavía no hay ningún registro en el sitio.");
+    console.log("(No es un error: el servidor respondió bien y no hay archivos con datos.)");
+    console.log("");
+    console.log(separador());
+    console.log(`CSV generado: ${archivoCsv}`);
+    console.log("");
+    return;
+  }
+
+  console.log("");
+  console.log("POR ZONA");
+  for (const z of [...porZona.keys()].sort()) {
+    const acc = porZona.get(z);
+    console.log(`  Zona ${z} : ${num(acc.personas)} personas en ${num(acc.compras.size)} compras`);
+  }
+
+  console.log("");
+  console.log("POR DÍA");
+  for (const d of [...porDia.keys()].sort()) {
+    console.log(`  ${d} : ${num(porDia.get(d))}`);
+  }
+
+  console.log("");
+  console.log("LISTADO COMPLETO");
+  console.log("");
+  let n = 0;
+  for (const f of filas) {
+    n++;
+    console.log(`${String(n).padStart(4, " ")}. ${f.Nombre}`);
+    console.log(`      Correo   : ${f.Correo}`);
+    console.log(`      Teléfono : ${f.WhatsApp}`);
+    console.log(`      Fecha    : ${f["Fecha y hora"] || f.dia}`);
+    console.log(`      Empresa  : ${f.Empresa}, ${f.Cargo}`);
+    console.log(`      Zona ${f.Zona}, boleto ${f.boleto_numero}, compra ${f.id_compra}`);
+    console.log("");
+  }
+
+  console.log(separador());
+  console.log(`CSV  generado: ${archivoCsv}`);
+  console.log(`XLSX generado: ${archivoXlsx}`);
+  console.log(`Filas: ${num(filas.length)}`);
+  console.log("");
+}
+
+async function main() {
+  cargarEnv();
+
+  const args = process.argv.slice(2);
+  const modoTodo = args.some((a) => a === "--todo" || a === "--completo");
+  SOLO_LOCAL = args.some((a) => a === "--local" || a === "--sin-red");
+
+  const clave = process.env.EXPORT_ACCESS_KEY;
+  const base = (process.env.SITIO_URL || "https://foroampiags.com.mx").replace(/\/+$/, "");
+  const inicio = process.env.REGISTROS_DESDE || "2026-07-21"; // primer deploy del sitio
+
+  if (!clave && !SOLO_LOCAL) {
+    console.error(
+      "Falta EXPORT_ACCESS_KEY. Ponla en .env.local dentro de " + RAIZ + " (ese archivo ya está en .gitignore)."
+    );
+    console.error(
+      "También puedes correr con --local si ya copiaste los xlsx a " + DIR_CACHE + "."
+    );
+    process.exit(1);
+  }
+
+  fs.mkdirSync(DIR_REPORTES, { recursive: true });
+  fs.mkdirSync(DIR_CACHE, { recursive: true });
+
+  if (modoTodo) {
+    await reporteCompleto(base, clave, inicio);
+    return;
+  }
+
+  const hoy = hoyEnMexico();
+  const finSemana = sumarDias(hoy, -1); // ayer: último día completo
+  const inicioSemana = sumarDias(hoy, -7);
+  const finPrevia = sumarDias(hoy, -8);
+  const inicioPrevia = sumarDias(hoy, -14);
+
+  const diasSemana = rangoDias(inicioSemana, finSemana);
+  const diasPrevia = rangoDias(inicioPrevia, finPrevia).filter((d) => d >= inicio);
+  const diasAcumulado = rangoDias(inicio, finSemana);
+
+  const semana = await filasDeRango(diasSemana, base, clave);
+  const previa = await filasDeRango(diasPrevia, base, clave);
+  const acumulado = await filasDeRango(diasAcumulado, base, clave);
+
+  const comprasSemana = new Set(semana.map((f) => f.id_compra).filter(Boolean)).size;
+  const comprasAcumulado = new Set(acumulado.map((f) => f.id_compra).filter(Boolean)).size;
+
+  const archivoCsv = path.join(
+    DIR_REPORTES,
+    `registros-${inicioSemana}_a_${finSemana}.csv`
+  );
+  const archivoXlsx = path.join(
+    DIR_REPORTES,
+    `registros-${inicioSemana}_a_${finSemana}.xlsx`
+  );
+  escribirCsv(archivoCsv, semana);
+  escribirXlsx(archivoXlsx, semana);
+
+  console.log("");
+  console.log("REPORTE SEMANAL DE REGISTROS, Foro Bajío 2026");
+  console.log(`Semana del ${fechaLarga(inicioSemana)}`);
+  console.log(`         al ${fechaLarga(finSemana)}`);
+  console.log(separador());
+  console.log(`Personas registradas esta semana : ${num(semana.length)}`);
+  console.log(`Compras de esta semana           : ${num(comprasSemana)}`);
+  console.log(`Contra la semana anterior        : ${comparacion(semana.length, previa.length)}`);
+  console.log(separador());
+  console.log(`Acumulado total de personas      : ${num(acumulado.length)}`);
+  console.log(`Acumulado total de compras       : ${num(comprasAcumulado)}`);
+  console.log(`Acumulado desde                  : ${inicio}`);
+  console.log(separador());
+
+  if (semana.length === 0) {
+    console.log("");
+    console.log("No hubo registros nuevos en esta semana.");
+    console.log("(No es un error: el sitio respondió bien, simplemente nadie se registró.)");
+  } else {
+    console.log("");
+    console.log("REGISTROS NUEVOS DE LA SEMANA");
+    console.log("");
+    let n = 0;
+    for (const f of semana) {
+      n++;
+      console.log(`${String(n).padStart(3, " ")}. ${f.Nombre}`);
+      console.log(`     Correo   : ${f.Correo}`);
+      console.log(`     Teléfono : ${f.WhatsApp}`);
+      console.log(`     Fecha    : ${f["Fecha y hora"] || f.dia}`);
+      console.log(`     Zona ${f.Zona}, boleto ${f.boleto_numero}, compra ${f.id_compra}`);
+      console.log("");
+    }
+  }
+
+  console.log(separador());
+  console.log(`CSV  generado: ${archivoCsv}`);
+  console.log(`XLSX generado: ${archivoXlsx}`);
+  console.log(`Filas: ${num(semana.length)}`);
+  console.log("");
+}
+
+main().catch((e) => {
+  console.error("");
+  console.error("El reporte no se pudo generar.");
+  console.error(e.message);
+  console.error("");
+  process.exit(1);
+});
