@@ -96,19 +96,55 @@ function fechaLarga(iso) {
   }).format(new Date(`${iso}T12:00:00Z`));
 }
 
-// La hoja guarda la fecha como la escribió el sitio: "18/08/26, 7:34:21 p.m."
-// De ahí se saca el día para poder agrupar y filtrar por semana.
-function diaDeFecha(texto) {
-  const m = String(texto || "").match(/^\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
-  if (!m) return "";
-  const [, d, mes, anio] = m;
-  const completo = anio.length === 2 ? `20${anio}` : anio;
-  return `${completo}-${mes.padStart(2, "0")}-${d.padStart(2, "0")}`;
+// La fecha llega en dos formatos distintos y hay que aguantar los dos:
+//
+//   "20/08/26, 2:24:07 a.m."                        tal como la escribió el sitio
+//   "Thu Aug 20 2026 02:24:07 GMT-0600 (...)"       cuando Google Sheets
+//                                                   reconoce la celda como fecha
+//                                                   y la devuelve ya convertida
+//
+// Sin esto el día sale vacío, y el reporte semanal filtra por día: daría cero
+// siempre aunque la hoja estuviera llena.
+function partesDeFecha(texto) {
+  const s = String(texto ?? "").trim();
+  if (!s) return null;
+
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if (m) {
+    const [, d, mes, anio] = m;
+    const completo = anio.length === 2 ? `20${anio}` : anio;
+    return {
+      dia: `${completo}-${mes.padStart(2, "0")}-${d.padStart(2, "0")}`,
+      legible: s,
+    };
+  }
+
+  const fecha = new Date(s);
+  if (!Number.isNaN(fecha.getTime())) {
+    return {
+      dia: new Intl.DateTimeFormat("en-CA", {
+        timeZone: ZONA,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(fecha),
+      legible: new Intl.DateTimeFormat("es-MX", {
+        timeZone: ZONA,
+        dateStyle: "short",
+        timeStyle: "medium",
+      }).format(fecha),
+    };
+  }
+
+  return { dia: "", legible: s };
 }
 
 function normalizar(f, diaConocido) {
-  const fila = { dia: diaConocido || diaDeFecha(f["Fecha y hora"]) };
+  const partes = partesDeFecha(f["Fecha y hora"]);
+  const fila = { dia: diaConocido || (partes ? partes.dia : "") };
   for (const c of COLUMNAS) fila[c] = String(f[c] ?? "");
+  // Se guarda ya normalizada para que pantalla, CSV y xlsx digan lo mismo.
+  if (partes) fila["Fecha y hora"] = partes.legible;
   return fila;
 }
 

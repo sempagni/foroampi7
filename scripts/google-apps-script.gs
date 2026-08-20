@@ -19,6 +19,11 @@ const SECRETO = "CAMBIA-ESTO-POR-TU-CONTRASENA";
 // A dónde llega el aviso de cada registro nuevo.
 const CORREO_AVISO = "CAMBIA-ESTO-POR-TU-CORREO";
 
+// Marca de version. Sirve para comprobar desde fuera que la implementacion
+// publicada corresponde al codigo que acabas de guardar. Si cambias el codigo
+// y esto no cambia, es que la implementacion se quedo en una version vieja.
+const VERSION = "v2";
+
 const COLUMNAS = [
   "Fecha y hora",
   "Nombre",
@@ -34,6 +39,19 @@ const COLUMNAS = [
 function doPost(e) {
   try {
     const peticion = JSON.parse(e.postData.contents);
+
+    // Diagnostico: no revela el secreto, solo datos suficientes para saber
+    // si la version publicada es la correcta y si la configuracion esta puesta.
+    if (peticion.accion === "diagnostico") {
+      return responder({
+        ok: true,
+        version: VERSION,
+        largoSecreto: String(SECRETO).length,
+        secretoSinCambiar: SECRETO === "CAMBIA-ESTO-POR-TU-CONTRASENA",
+        correoPuesto: String(CORREO_AVISO).indexOf("@") !== -1,
+        filasEnLaHoja: Math.max(0, hoja().getLastRow() - 1),
+      });
+    }
 
     if (peticion.secreto !== SECRETO) {
       return responder({ ok: false, error: "No autorizado" });
