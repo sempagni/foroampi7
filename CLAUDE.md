@@ -35,11 +35,19 @@ This is a single-page Next.js 15 App Router site. `app/page.tsx` renders a fixed
 
 **`TicketsSection.tsx`** owns the canonical `ZONAS` array (id/nombre/precio/ubicacion/badge) and exports `ZONAS`/`ZonaId`; `RegistrationSection.tsx` imports from here rather than duplicating zone data. The zone picker is two things kept in sync: a hand-coded SVG `VenueDiagram` (three hoverable/clickable `<rect>` bands, not AI-generated — precision mattered more than style here) and the zone cards. Both call `elegirZona()`, which dispatches a `window` CustomEvent (`"select-zone"`) that `RegistrationSection` listens for to pre-fill its zone `<select>`. This event is the only cross-component communication in the app — there's no shared state/context.
 
-**Registration flow.** `RegistrationSection.tsx` posts JSON to `app/api/registro/route.ts`, which appends one row per ticket to a per-day workbook at `data/exports/registros_<AAAA-MM-DD>.xlsx` using `xlsx` (SheetJS); there's no database. The day bucket is computed in the `America/Mexico_City` timezone regardless of where the server actually runs (flagged as an assumption in a code comment in that file), and `generarIdCompra()` builds its timestamp in that same timezone so an `id_compra` never contradicts the filename it lives in.
+**Registration flow.** `RegistrationSection.tsx` posts JSON to `app/api/registro/route.ts`, which expands the purchase into one row per ticket (the buyer plus each extra attendee, all sharing one `id_compra`) and sends them to a Google Apps Script bound to a Google Sheet. That script appends the rows and emails a notification. Its source is kept in `scripts/google-apps-script.gs`, but the copy that actually runs lives in Google, pasted into the sheet's Apps Script editor: editing the file here changes nothing until it is pasted and redeployed. Configured through `REGISTROS_WEBHOOK_URL` and `REGISTROS_WEBHOOK_SECRET`.
 
-Because the handler reads the whole workbook, appends and rewrites it, concurrent POSTs would otherwise read the same version and silently overwrite each other. Writes are therefore serialized through a module-level promise chain (`enCola`) and committed atomically via a `.tmp` file plus `rename`. Keep both if this route is touched: without the chain, simultaneous registrations are lost with no error. Note the chain only serializes within one Node process; running multiple instances would need a real file lock.
+The sheet is the store of record, and it is deliberately off-server. Registrations used to be written only to per-day workbooks at `data/exports/registros_<AAAA-MM-DD>.xlsx`, which was silent data loss: `data/exports/` is gitignored and generated at runtime, so every Hostinger redeploy replaced the app directory and took the accumulated registrations with it. This was confirmed in production on 2026-08-20, a test registration vanished the moment a push redeployed the site.
 
-`app/api/registro/export/route.ts` is a separate GET endpoint to download a given day's workbook via `?date=AAAA-MM-DD&key=...`, gated by a single shared-secret env var `EXPORT_ACCESS_KEY` — there's no real auth/session system beyond that. Copy `.env.example` to `.env.local` to set it locally.
+The xlsx write survives as an emergency copy only, for the case where Google is unreachable at the moment someone registers. It still goes through the module-level promise chain (`enCola`) and the `.tmp` plus `rename` commit, because the handler reads the whole workbook, appends and rewrites it: without the chain, simultaneous POSTs read the same version and one silently overwrites the other. Keep both if that path is touched. The chain only serializes within one Node process. Do not treat these files as storage, the next deploy deletes them.
+
+`app/api/registro/export/route.ts` is a GET endpoint to download a given day's emergency copy via `?date=AAAA-MM-DD&key=...`, gated by the shared secret `EXPORT_ACCESS_KEY`. There is no auth system beyond that, and the key travels in the query string, so it lands in server access logs.
+
+**Reporting.** `scripts/reporte-registros` is a standalone CommonJS script, run on demand, not scheduled. Default mode reports the last 7 complete days (ending yesterday, so the day in progress is never split across two reports) with a comparison against the previous 7. `--todo` prints the full roster, `--local` works offline from `data/cache-registros/`. Both modes write a CSV and an xlsx into `reportes/`. It reads the Google sheet when configured and falls back to the export endpoint otherwise.
+
+Dates need care there. The site writes `"20/08/26, 2:24:07 a.m."` as text, but Sheets recognises the cell as a date and hands it back converted, as `"Thu Aug 20 2026 02:24:07 GMT-0600"`. `partesDeFecha()` accepts both. This matters more than it looks: the weekly report filters by day, so a date it cannot parse yields zero registrations for a week that actually had them.
+
+`reportes/` and `data/cache-registros/` are gitignored, both hold registrant PII.
 
 **Countdown target.** `CountdownSection.tsx` hardcodes the event date/time as `FECHA_EVENTO` (`2026-10-16T08:00:00-06:00`). The 8:00 start is confirmed by the client, not an assumption, and matches the section heading ("Te esperamos desde las 8:00 hasta las 19:00 hrs."). The component renders `--` until its `useEffect` runs so server and client markup agree.
 
@@ -49,9 +57,11 @@ The live site (foroampiags.com.mx) runs on Hostinger's Node.js hosting, deployed
 
 Every asset the app reads lives in `public/` and is tracked in git, so a push is a complete deploy. Nothing has to be uploaded by hand through Hostinger's File Manager. (`public/LogosForo.svg` is the one tracked file nothing references; it is left over from the deleted `LogosSection`.)
 
-`.gitignore` excludes two things that matter:
-- `data/exports/` — contains real registrant PII (xlsx workbooks), never belongs in git. It is created on demand by the registration route.
+`.gitignore` excludes what matters:
+- `data/exports/`, `data/cache-registros/` and `reportes/` — real registrant PII, never belongs in git.
 - `.env` / `.env.local` — real secrets.
+
+Deploys are destructive to anything the app wrote at runtime. Nothing that has to outlive a push may live inside the app directory.
 
 It also still lists `public/frames/`, `public/hero.mp4`, `/frames/`, `/hero.mp4`, `/assets/` and `/reference/`. Those are vestigial entries from the pre-redesign hero and from asset iteration; none of those paths exist and nothing reads them.
 
