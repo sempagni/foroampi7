@@ -16,7 +16,9 @@
 // para configurar el sitio. Ejemplo: "foro2026-xK9mP2vL8qR4"
 const SECRETO = "CAMBIA-ESTO-POR-TU-CONTRASENA";
 
-// A dónde llega el aviso de cada registro nuevo.
+// A dónde llega el aviso de cada registro nuevo. Para mandarlo a varias
+// personas, sepáralas con coma dentro de las mismas comillas:
+//   "uno@ejemplo.com, dos@ejemplo.com"
 const CORREO_AVISO = "CAMBIA-ESTO-POR-TU-CORREO";
 
 const COLUMNAS = [
