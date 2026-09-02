@@ -22,7 +22,7 @@ export const ZONAS = [
   {
     id: "C",
     nombre: "Zona C",
-    precio: 500,
+    precio: 550,
     ubicacion: "Ubicación trasera",
     badge: "/badges/zona_c.png",
   },
