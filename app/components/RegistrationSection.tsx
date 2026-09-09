@@ -181,7 +181,7 @@ export default function RegistrationSection() {
   };
 
   const mensajeWhatsApp = encodeURIComponent(
-    `Hola, me acabo de registrar al Foro Bajío 2026, zona ${zonaElegida.id}, ${form.cantidadBoletos} boletos, adjunto mi comprobante de pago.`
+    `Hola, me registré al Foro Bajío 2026, zona ${zonaElegida.id}, ${form.cantidadBoletos} boletos. Adjunto mi comprobante de pago para confirmar mi registro.`
   );
 
   return (
@@ -220,7 +220,7 @@ export default function RegistrationSection() {
             marginBottom: "clamp(2rem, 5vw, 3.5rem)",
           }}
         >
-          {confirmado ? "Registro recibido" : "Regístrate al foro"}
+          {confirmado ? "Falta confirmar tu pago" : "Regístrate al foro"}
         </h2>
       </FadeIn>
 
@@ -416,6 +416,29 @@ export default function RegistrationSection() {
       ) : (
         <div style={{ display: "grid", gap: "1.6rem" }}>
           <div
+            role="status"
+            style={{
+              background: "var(--warning-bg)",
+              border: "1px solid var(--warning-border)",
+              borderRadius: "8px",
+              padding: "1.4rem 1.6rem",
+              display: "flex",
+              gap: "0.9rem",
+              alignItems: "flex-start",
+            }}
+          >
+            <span aria-hidden="true" style={{ fontSize: "1.4rem", lineHeight: 1 }}>
+              ⚠️
+            </span>
+            <p style={{ color: "var(--warning-text)", fontWeight: 500, lineHeight: 1.6 }}>
+              Tu registro se guardó, pero tu lugar todavía no está confirmado.
+              Necesitamos que completes los dos pasos de abajo (transferir y
+              enviar tu comprobante) para reservarlo. Sin comprobante no hay
+              lugar asegurado.
+            </p>
+          </div>
+
+          <div
             style={{
               background: "#ffffff",
               border: "1px solid var(--border-subtle)",
@@ -469,7 +492,7 @@ export default function RegistrationSection() {
                 marginBottom: "0.8rem",
               }}
             >
-              Transferencia SPEI
+              Paso 1 de 2. Realiza tu transferencia SPEI
             </h3>
             <p style={{ color: "var(--text-body)", fontWeight: 300, lineHeight: 1.9 }}>
               Titular: {TITULAR_CUENTA}
@@ -479,38 +502,62 @@ export default function RegistrationSection() {
               Número de cuenta: {NUMERO_CUENTA}
               <br />
               CLABE interbancaria: {CLABE_BANCARIA}
-              <br />
-              <strong>
-                Envía tu comprobante (captura de pantalla) de la
-                transferencia por WhatsApp.
-              </strong>
             </p>
           </div>
 
-          <a
-            href={`https://wa.me/${WHATSAPP_EVENTO}?text=${mensajeWhatsApp}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <div
             style={{
-              background: "var(--accent)",
-              color: "#ffffff",
-              borderRadius: "4px",
-              padding: "1rem 2rem",
-              fontSize: "1.05rem",
-              fontWeight: 600,
-              textAlign: "center",
-              textDecoration: "none",
-              transition: "background 0.25s ease",
+              background: "#ffffff",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "8px",
+              boxShadow: "var(--card-shadow)",
+              padding: "1.8rem",
+              display: "grid",
+              gap: "1.1rem",
             }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.background = "var(--accent-hover)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.background = "var(--accent)")
-            }
           >
-            Enviar comprobante por WhatsApp
-          </a>
+            <div>
+              <h3
+                style={{
+                  fontFamily: "var(--font-display), serif",
+                  fontSize: "1.4rem",
+                  marginBottom: "0.5rem",
+                }}
+              >
+                Paso 2 de 2. Envía tu comprobante
+              </h3>
+              <p style={{ color: "var(--text-body)", fontWeight: 300, lineHeight: 1.7 }}>
+                Tu registro se confirma hasta que recibamos la captura de
+                pantalla de tu transferencia. Sin este paso tu lugar queda
+                pendiente, aunque ya hayas transferido.
+              </p>
+            </div>
+            <a
+              href={`https://wa.me/${WHATSAPP_EVENTO}?text=${mensajeWhatsApp}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                background: "var(--accent)",
+                color: "#ffffff",
+                borderRadius: "4px",
+                padding: "1rem 2rem",
+                fontSize: "1.05rem",
+                fontWeight: 600,
+                textAlign: "center",
+                textDecoration: "none",
+                transition: "background 0.25s ease",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "var(--accent-hover)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "var(--accent)")
+              }
+            >
+              Enviar comprobante por WhatsApp
+            </a>
+          </div>
+
           <p style={{ color: "var(--text-dim)", fontWeight: 300, fontSize: "0.92rem", lineHeight: 1.6 }}>
             Una vez validado tu pago recibirás tu acceso con código QR por
             correo y WhatsApp.
