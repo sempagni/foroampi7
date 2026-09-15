@@ -212,7 +212,9 @@ export default function AboutSection() {
           right: clamp(1.6rem, 3.4vw, 2.6rem);
           color: #ffffff;
           font-size: 0.85rem;
-          opacity: 0.6;
+          /* 0.6 daba 3.06:1 sobre el verde, por debajo del mínimo para texto
+             normal. 0.85 lo deja en 4.53:1 sin perder el efecto de pista. */
+          opacity: 0.85;
           transition: opacity 0.25s ease;
         }
         .book:hover .book-hint {

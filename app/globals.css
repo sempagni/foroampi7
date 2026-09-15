@@ -15,9 +15,15 @@
      contra ese fondo (la foto de PageBackground lo oscurece), así que el
      texto en verde usa este tono y --accent queda para rellenos y bordes. */
   --accent-text: #0a5943;
-  --text-dim: #6b6b6b;
+  /* #6b6b6b quedaba en 4.29:1 contra el fondo real de la página, por debajo
+     del 4.5:1 que pide WCAG AA para texto normal. Este tono lo sube a 5.35:1
+     sobre el fondo y 7.57:1 dentro de las tarjetas blancas. */
+  --text-dim: #545454;
   --border-subtle: rgba(13, 118, 87, 0.15);
   --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  /* Rojo para errores de formulario. Antes se usaba el verde del sitio, que
+     además de leerse como "todo bien" no llegaba al contraste necesario. */
+  --error: #a3231c;
   --warning-bg: #fff6e5;
   --warning-border: #f2b84b;
   --warning-text: #7a4d00;

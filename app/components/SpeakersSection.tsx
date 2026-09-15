@@ -76,7 +76,8 @@ function SpeakerCard({
       >
         <span
           style={{
-            color: "rgba(255,255,255,0.85)",
+            // 0.85 daba 4.53:1, al filo del mínimo para un texto de 0.75rem.
+            color: "rgba(255,255,255,0.92)",
             fontSize: "0.75rem",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
@@ -100,7 +101,7 @@ function SpeakerCard({
         {descripcion && (
           <p
             style={{
-              color: "rgba(255,255,255,0.9)",
+              color: "rgba(255,255,255,0.92)",
               fontWeight: 300,
               fontSize: "1rem",
             }}

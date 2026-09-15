@@ -68,7 +68,7 @@ const labelStyle: React.CSSProperties = {
 };
 
 const errorStyle: React.CSSProperties = {
-  color: "var(--accent-hover)",
+  color: "var(--error)",
   fontSize: "0.85rem",
   marginTop: "0.4rem",
 };
@@ -416,7 +416,7 @@ export default function RegistrationSection() {
             </div>
 
             {errorEnvio && (
-              <p style={{ color: "var(--accent-hover)", fontSize: "0.95rem" }}>
+              <p style={{ color: "var(--error)", fontSize: "0.95rem" }}>
                 {errorEnvio}
               </p>
             )}

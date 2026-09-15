@@ -6,8 +6,13 @@ function scrollToRegistro() {
   document.getElementById("registro")?.scrollIntoView({ behavior: "smooth" });
 }
 
+// El degradado terminaba en #8fdb8a y #eef8b8, verdes muy claros que sobre el
+// fondo claro del sitio daban 1.0:1 y 1.5:1 de contraste: la mitad derecha del
+// título era prácticamente invisible. Ahora el recorrido es el mismo (verde
+// profundo hacia verde vivo) pero se detiene en #228a58, que aún cumple el
+// 3:1 que WCAG AA pide para texto grande.
 const TITLE_GRADIENT =
-  "linear-gradient(90deg, #0d2b25 0%, #14563f 30%, #1e9859 55%, #8fdb8a 78%, #eef8b8 100%)";
+  "linear-gradient(90deg, #0d2b25 0%, #14563f 30%, #1a7550 60%, #1e8055 80%, #228a58 100%)";
 
 export default function HeroIntro() {
   return (
@@ -103,7 +108,7 @@ export default function HeroIntro() {
           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
         }
         .hero-intro-subtitle {
-          color: var(--accent);
+          color: var(--accent-text);
           font-size: 0.9rem;
           letter-spacing: 0.1em;
           text-transform: uppercase;

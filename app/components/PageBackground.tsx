@@ -12,7 +12,11 @@ export default function PageBackground() {
         objectFit: "cover",
         objectPosition: "center",
         zIndex: -2,
-        opacity: 0.5,
+        /* Al 50% esta foto bajaba el fondo de la página hasta #c4c7c0 en sus
+           zonas más oscuras, y ahí el verde y los grises del sitio ya no
+           alcanzaban el contraste de WCAG AA. Al 25% el fondo nunca baja de
+           #d8d9d6 y la textura de nubes se sigue viendo. */
+        opacity: 0.25,
         pointerEvents: "none",
         userSelect: "none",
       }}
