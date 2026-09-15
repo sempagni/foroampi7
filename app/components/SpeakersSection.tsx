@@ -38,10 +38,15 @@ function SpeakerCard({
   rol,
   descripcion,
   foto,
-}: (typeof PONENTES)[number]) {
+  duplicado = false,
+}: (typeof PONENTES)[number] & { duplicado?: boolean }) {
   return (
     <div
       className="speaker-card"
+      // El track pinta la lista dos veces para que el carrusel dé la vuelta
+      // sin saltos. La segunda copia es puro efecto visual: sin esto un lector
+      // de pantalla anuncia ocho ponentes cuando en realidad son cuatro.
+      aria-hidden={duplicado || undefined}
       style={{
         background: "#ffffff",
         border: "1px solid var(--border-subtle)",
@@ -57,8 +62,8 @@ function SpeakerCard({
           src={foto}
           alt={
             descripcion
-              ? `${nombre}, ${descripcion}, ponente del foro`
-              : `${nombre}, ponente del foro`
+              ? `${nombre}, ${rol.toLowerCase()} del foro, ${descripcion}`
+              : `${nombre}, ${rol.toLowerCase()} del foro`
           }
           fill
           sizes="320px"
@@ -251,10 +256,10 @@ export default function SpeakersSection() {
           <SpeakerCard key="a-mario" {...tarjetas[1]} />
           <SpeakerCard key="a-tony" {...tarjetas[0]} />
           <SpeakerCard key="a-lorena" {...tarjetas[3]} />
-          <SpeakerCard key="b-moris" {...tarjetas[2]} />
-          <SpeakerCard key="b-mario" {...tarjetas[1]} />
-          <SpeakerCard key="b-tony" {...tarjetas[0]} />
-          <SpeakerCard key="b-lorena" {...tarjetas[3]} />
+          <SpeakerCard key="b-moris" {...tarjetas[2]} duplicado />
+          <SpeakerCard key="b-mario" {...tarjetas[1]} duplicado />
+          <SpeakerCard key="b-tony" {...tarjetas[0]} duplicado />
+          <SpeakerCard key="b-lorena" {...tarjetas[3]} duplicado />
         </div>
       </div>
 

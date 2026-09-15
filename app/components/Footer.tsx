@@ -9,11 +9,10 @@ const ENLACES_LEGALES = [
 export default function Footer() {
   return (
     <footer className="site-footer">
-      <img
-        src="/CerroFooter.png"
-        alt="Silueta del Cerro del Muerto sobre la ciudad de Aguascalientes"
-        className="site-footer-cerro"
-      />
+      {/* Decorativa: es el mismo cerro que el watermark del sitio y no aporta
+          información que el texto no tenga. Con alt="" el lector de pantalla
+          la salta en vez de describir una foto sin relevancia. */}
+      <img src="/CerroFooter.png" alt="" aria-hidden="true" className="site-footer-cerro" />
 
       <nav className="site-footer-legal" aria-label="Enlaces legales">
         {ENLACES_LEGALES.map((enlace) => (

@@ -19,7 +19,7 @@ export default function HeroIntro() {
     <div className="hero-intro">
       <motion.img
         src="/LOGO_AMPI.png"
-        alt="AMPI Aguascalientes"
+        alt="AMPI Aguascalientes, Asociación Mexicana de Profesionales Inmobiliarios"
         className="hero-intro-logo"
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
