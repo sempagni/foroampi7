@@ -14,7 +14,7 @@ export default function LegalPage({
   children: ReactNode;
 }) {
   return (
-    <main className="legal-page">
+    <main id="contenido" className="legal-page">
       <article className="legal-prose">
         <h1>{titulo}</h1>
         <p className="legal-fecha">

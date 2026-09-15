@@ -8,7 +8,7 @@ import RegistrationSection from "./components/RegistrationSection";
 
 export default function Home() {
   return (
-    <main>
+    <main id="contenido">
       <HeroIntro />
       <CountdownSection />
       <SpeakersSection />

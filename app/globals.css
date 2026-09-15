@@ -46,3 +46,60 @@ body {
   overflow-x: hidden;
   font-family: var(--font-body), sans-serif;
 }
+
+/* Foco visible en todo lo que se puede alcanzar con teclado.
+   Se usa :focus-visible y no :focus para que el anillo salga al tabular pero
+   no al hacer clic con el mouse, que es lo que rompía el diseño en otros
+   intentos. El outline va en --accent-text (5.88:1 contra el fondo) con un
+   offset para que se despegue del borde del control. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Los elementos de un SVG no siempre pintan el outline igual que el resto.
+   Ahí se refuerza con un contorno propio dibujado sobre la forma. */
+svg [tabindex]:focus-visible {
+  outline: none;
+}
+
+/* Quien navega con teclado necesita poder saltarse el menú. Este enlace vive
+   fuera de pantalla hasta que recibe el foco. */
+.skip-link {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -150%);
+  z-index: 60;
+  background: var(--accent);
+  color: #ffffff;
+  padding: 0.85rem 1.5rem;
+  border-radius: 0 0 6px 6px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.15s ease;
+}
+.skip-link:focus {
+  transform: translate(-50%, 0);
+}
+
+/* Respeta a quien pidió menos movimiento en su sistema: el carrusel de
+   ponentes y las animaciones de entrada se quedan quietos. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -80,6 +80,9 @@ export default function RegistrationSection() {
   const [enviando, setEnviando] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
   const [errorEnvio, setErrorEnvio] = useState("");
+  // Se anuncia en una región aria-live para que el lector de pantalla avise
+  // que la validación falló, además de mover el foco al campo.
+  const [resumenError, setResumenError] = useState("");
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -126,6 +129,22 @@ export default function RegistrationSection() {
     form.ladaTipo === "MX" ? LADA_MEXICO : form.ladaManual.replace(/\D/g, "");
   const whatsappCompleto = `${ladaCompleta}${form.whatsapp.replace(/\D/g, "")}`;
 
+  // Orden en que se recorren los campos al buscar el primero con error: es el
+  // mismo orden en que aparecen en pantalla, para que el foco no salte hacia
+  // atrás.
+  const ORDEN_CAMPOS: (keyof FormState)[] = [
+    "nombre",
+    "correo",
+    "ladaManual",
+    "whatsapp",
+    "empresa",
+    "cargo",
+    "aceptaTerminos",
+  ];
+
+  const idDelCampo = (campo: keyof FormState) =>
+    campo === "aceptaTerminos" ? "acepta" : String(campo);
+
   const validar = () => {
     const errs: Partial<Record<keyof FormState, string>> = {};
     if (!form.nombre.trim()) errs.nombre = "Escribe tu nombre completo";
@@ -153,13 +172,36 @@ export default function RegistrationSection() {
     setErroresAsistentes(nuevosErroresAsistentes);
 
     setErrores(errs);
-    return Object.keys(errs).length === 0 && nuevosErroresAsistentes.every((e) => !e);
+
+    const total =
+      Object.keys(errs).length + nuevosErroresAsistentes.filter(Boolean).length;
+    setResumenError(
+      total === 0
+        ? ""
+        : total === 1
+          ? "Hay 1 campo por corregir en el formulario."
+          : `Hay ${total} campos por corregir en el formulario.`
+    );
+
+    if (total > 0) {
+      // Llevar el foco al primer campo con problema. Sin esto, quien navega
+      // con teclado o lector de pantalla se queda al final del formulario sin
+      // saber qué falta ni dónde está.
+      const primero = ORDEN_CAMPOS.find((c) => errs[c]);
+      const id = primero
+        ? idDelCampo(primero)
+        : `asistente-${nuevosErroresAsistentes.findIndex(Boolean)}`;
+      requestAnimationFrame(() => document.getElementById(id)?.focus());
+    }
+
+    return total === 0;
   };
 
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorEnvio("");
     if (!validar()) return;
+    setResumenError("");
     setEnviando(true);
     try {
       const res = await fetch("/api/registro", {
@@ -246,8 +288,14 @@ export default function RegistrationSection() {
                 onChange={set("nombre")}
                 style={inputStyle}
                 autoComplete="name"
+                aria-invalid={errores.nombre ? true : undefined}
+                aria-describedby={errores.nombre ? "error-nombre" : undefined}
               />
-              {errores.nombre && <p style={errorStyle}>{errores.nombre}</p>}
+              {errores.nombre && (
+                <p id="error-nombre" style={errorStyle}>
+                  {errores.nombre}
+                </p>
+              )}
             </div>
             <div>
               <label htmlFor="correo" style={labelStyle}>
@@ -260,8 +308,14 @@ export default function RegistrationSection() {
                 onChange={set("correo")}
                 style={inputStyle}
                 autoComplete="email"
+                aria-invalid={errores.correo ? true : undefined}
+                aria-describedby={errores.correo ? "error-correo" : undefined}
               />
-              {errores.correo && <p style={errorStyle}>{errores.correo}</p>}
+              {errores.correo && (
+                <p id="error-correo" style={errorStyle}>
+                  {errores.correo}
+                </p>
+              )}
             </div>
             <div>
               <label htmlFor="whatsapp" style={labelStyle}>
@@ -280,6 +334,7 @@ export default function RegistrationSection() {
                 </select>
                 {form.ladaTipo === "OTRO" && (
                   <input
+                    id="ladaManual"
                     aria-label="Código de país manual"
                     type="tel"
                     inputMode="numeric"
@@ -288,6 +343,8 @@ export default function RegistrationSection() {
                     onChange={set("ladaManual")}
                     className="reg-lada-manual"
                     style={inputStyle}
+                    aria-invalid={errores.ladaManual ? true : undefined}
+                    aria-describedby={errores.ladaManual ? "error-ladaManual" : undefined}
                   />
                 )}
                 <input
@@ -299,10 +356,20 @@ export default function RegistrationSection() {
                   style={{ ...inputStyle, flex: 1, minWidth: 0 }}
                   autoComplete="tel-national"
                   placeholder={form.ladaTipo === "MX" ? "10 dígitos" : "Número"}
+                  aria-invalid={errores.whatsapp ? true : undefined}
+                  aria-describedby={errores.whatsapp ? "error-whatsapp" : undefined}
                 />
               </div>
-              {errores.ladaManual && <p style={errorStyle}>{errores.ladaManual}</p>}
-              {errores.whatsapp && <p style={errorStyle}>{errores.whatsapp}</p>}
+              {errores.ladaManual && (
+                <p id="error-ladaManual" style={errorStyle}>
+                  {errores.ladaManual}
+                </p>
+              )}
+              {errores.whatsapp && (
+                <p id="error-whatsapp" style={errorStyle}>
+                  {errores.whatsapp}
+                </p>
+              )}
             </div>
             <div>
               <label htmlFor="empresa" style={labelStyle}>
@@ -315,8 +382,14 @@ export default function RegistrationSection() {
                 onChange={set("empresa")}
                 style={inputStyle}
                 autoComplete="organization"
+                aria-invalid={errores.empresa ? true : undefined}
+                aria-describedby={errores.empresa ? "error-empresa" : undefined}
               />
-              {errores.empresa && <p style={errorStyle}>{errores.empresa}</p>}
+              {errores.empresa && (
+                <p id="error-empresa" style={errorStyle}>
+                  {errores.empresa}
+                </p>
+              )}
             </div>
             <div>
               <label htmlFor="cargo" style={labelStyle}>
@@ -329,8 +402,14 @@ export default function RegistrationSection() {
                 onChange={set("cargo")}
                 style={inputStyle}
                 autoComplete="organization-title"
+                aria-invalid={errores.cargo ? true : undefined}
+                aria-describedby={errores.cargo ? "error-cargo" : undefined}
               />
-              {errores.cargo && <p style={errorStyle}>{errores.cargo}</p>}
+              {errores.cargo && (
+                <p id="error-cargo" style={errorStyle}>
+                  {errores.cargo}
+                </p>
+              )}
             </div>
             <div className="reg-zona-cantidad-row">
               <div>
@@ -382,8 +461,16 @@ export default function RegistrationSection() {
                       value={nombreAsistente}
                       onChange={cambiarAsistente(i)}
                       style={inputStyle}
+                      aria-invalid={erroresAsistentes[i] ? true : undefined}
+                      aria-describedby={
+                        erroresAsistentes[i] ? `error-asistente-${i}` : undefined
+                      }
                     />
-                    {erroresAsistentes[i] && <p style={errorStyle}>{erroresAsistentes[i]}</p>}
+                    {erroresAsistentes[i] && (
+                      <p id={`error-asistente-${i}`} style={errorStyle}>
+                        {erroresAsistentes[i]}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -398,6 +485,10 @@ export default function RegistrationSection() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, aceptaTerminos: e.target.checked }))
                   }
+                  aria-invalid={errores.aceptaTerminos ? true : undefined}
+                  aria-describedby={
+                    errores.aceptaTerminos ? "error-acepta" : undefined
+                  }
                 />
                 <span>
                   He leído y acepto el{" "}
@@ -411,12 +502,21 @@ export default function RegistrationSection() {
                 </span>
               </label>
               {errores.aceptaTerminos && (
-                <p style={errorStyle}>{errores.aceptaTerminos}</p>
+                <p id="error-acepta" style={errorStyle}>
+                  {errores.aceptaTerminos}
+                </p>
               )}
             </div>
 
+            {/* Región viva: el lector de pantalla la lee sola cuando cambia,
+                así la persona se entera de que la validación falló aunque el
+                error esté más arriba en el formulario. */}
+            <p aria-live="polite" className="reg-solo-lectores">
+              {resumenError}
+            </p>
+
             {errorEnvio && (
-              <p style={{ color: "var(--error)", fontSize: "0.95rem" }}>
+              <p role="alert" style={{ color: "var(--error)", fontSize: "0.95rem" }}>
                 {errorEnvio}
               </p>
             )}
@@ -618,6 +718,19 @@ export default function RegistrationSection() {
           display: grid;
           grid-template-columns: 2fr 1fr;
           gap: 1rem;
+        }
+        /* Visible sólo para lectores de pantalla: ocupa un punto del layout
+           sin que se vea, y sin usar display:none, que lo silenciaría. */
+        .reg-solo-lectores {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+          white-space: nowrap;
+          border: 0;
         }
         .reg-acepta {
           display: flex;

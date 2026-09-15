@@ -51,8 +51,11 @@ function VenueDiagram({
   return (
     <svg
       viewBox="0 0 320 270"
-      role="img"
-      aria-label="Diagrama del recinto con las zonas A al frente, B en medio y C atrás"
+      // Antes era role="img", que convierte todo lo de adentro en una sola
+      // imagen y esconde las bandas del lector de pantalla. Como cada banda es
+      // un botón real, el contenedor pasa a ser un grupo.
+      role="group"
+      aria-label="Mapa del recinto: elige tu zona"
       style={{ width: "100%", height: "auto", display: "block" }}
     >
       <text
@@ -67,14 +70,30 @@ function VenueDiagram({
       </text>
       <rect x="70" y="208" width="180" height="8" rx="3" fill="var(--accent)" />
       {BANDAS.map((banda) => {
+        const zona = ZONAS.find((z) => z.id === banda.id)!;
         const activa = hovered === banda.id;
         const apagada = hovered !== null && !activa;
         return (
           <g
             key={banda.id}
+            // Alcanzable con tab y activable con Enter o espacio, igual que
+            // el botón "Elegir esta zona" de la tarjeta de al lado.
+            role="button"
+            tabIndex={0}
+            aria-label={`Elegir ${zona.nombre}, ${zona.ubicacion.toLowerCase()}, $${zona.precio.toLocaleString("es-MX")} pesos`}
             onMouseEnter={() => setHovered(banda.id)}
             onMouseLeave={() => setHovered(null)}
+            // El foco resalta la banda igual que el mouse, para que quien
+            // tabula vea lo mismo que quien apunta.
+            onFocus={() => setHovered(banda.id)}
+            onBlur={() => setHovered(null)}
             onClick={() => elegirZona(banda.id)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                elegirZona(banda.id);
+              }
+            }}
             style={{ cursor: "pointer", transition: "opacity 0.25s ease" }}
             opacity={apagada ? 0.35 : 1}
           >
@@ -88,6 +107,20 @@ function VenueDiagram({
               stroke="var(--accent)"
               strokeWidth={activa ? 0 : 1}
               style={{ transition: "fill 0.25s ease" }}
+            />
+            {/* El outline del navegador no se pinta igual sobre un <g> de SVG,
+                así que el anillo de foco se dibuja aquí. */}
+            <rect
+              className="venue-foco"
+              x="17"
+              y={banda.y - 3}
+              width="286"
+              height="58"
+              rx="11"
+              fill="none"
+              stroke="var(--accent-text)"
+              strokeWidth="3"
+              pointerEvents="none"
             />
             <text
               x="160"
@@ -299,6 +332,12 @@ export default function TicketsSection() {
       </FadeIn>
 
       <style>{`
+        .venue-foco {
+          opacity: 0;
+        }
+        g:focus-visible .venue-foco {
+          opacity: 1;
+        }
         .tickets-layout {
           display: grid;
           grid-template-columns: 2fr 3fr;

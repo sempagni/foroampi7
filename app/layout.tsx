@@ -45,6 +45,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${playfair.variable} ${inter.variable} ${montserrat.variable}`}>
+        <a href="#contenido" className="skip-link">
+          Saltar al contenido
+        </a>
         {/* El banner va primero en el DOM a propósito: así es de los primeros
             destinos al tabular, en vez de quedar detrás de toda la página aun
             estando fijo abajo en pantalla. */}

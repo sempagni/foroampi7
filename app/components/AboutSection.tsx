@@ -35,7 +35,7 @@ export default function AboutSection() {
 
   const avanzar = () => setIndex((i) => (i + 1) % total);
 
-  const irA = (i: number, e: React.MouseEvent) => {
+  const irA = (i: number, e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
     setIndex(i);
   };
@@ -76,8 +76,16 @@ export default function AboutSection() {
                   key={i}
                   className={"book-dot" + (i === index ? " book-dot-active" : "")}
                   onClick={(e) => irA(i, e)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      irA(i, e);
+                    }
+                  }}
                   role="button"
+                  tabIndex={0}
                   aria-label={`Ir al punto ${i + 1}`}
+                  aria-current={i === index ? "true" : undefined}
                 />
               ))}
             </div>
