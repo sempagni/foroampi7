@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Inter, Montserrat } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import MountainWatermark from "./components/MountainWatermark";
 import PageBackground from "./components/PageBackground";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import CookieConsent from "./components/CookieConsent";
+import MetaPixel from "./components/MetaPixel";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -44,27 +45,14 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${playfair.variable} ${inter.variable} ${montserrat.variable}`}>
-        <Script id="meta-pixel" strategy="afterInteractive">
-          {`!function(f,b,e,v,n,t,s)
-          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-          n.queue=[];t=b.createElement(e);t.async=!0;
-          t.src=v;s=b.getElementsByTagName(e)[0];
-          s.parentNode.insertBefore(t,s)}(window, document,'script',
-          'https://connect.facebook.net/en_US/fbevents.js');
-          fbq('init', '2059038554718235');
-          fbq('track', 'PageView');`}
-        </Script>
-        <noscript>
-          <img
-            height="1"
-            width="1"
-            style={{ display: "none" }}
-            src="https://www.facebook.com/tr?id=2059038554718235&ev=PageView&noscript=1"
-            alt=""
-          />
-        </noscript>
+        {/* El banner va primero en el DOM a propósito: así es de los primeros
+            destinos al tabular, en vez de quedar detrás de toda la página aun
+            estando fijo abajo en pantalla. */}
+        <CookieConsent />
+        {/* Sólo se monta si ya hay consentimiento. Se quitó también el <noscript>
+            del pixel: sin JavaScript no hay forma de preguntar, y ese <img>
+            medía a la persona sin haberle dado a elegir. */}
+        <MetaPixel />
         <PageBackground />
         <MountainWatermark />
         <Navbar />
