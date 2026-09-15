@@ -1,14 +1,17 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 const ENLACES = [
-  { href: "#ponentes", label: "Ponentes" },
-  { href: "#boletos", label: "Boletos" },
-  { href: "#registro", label: "Registro" },
+  { hash: "#ponentes", label: "Ponentes" },
+  { hash: "#boletos", label: "Boletos" },
+  { hash: "#registro", label: "Registro" },
 ];
 
-function irA(href: string, e: React.MouseEvent) {
+function irA(hash: string, e: React.MouseEvent) {
   e.preventDefault();
-  document.querySelector(href)?.scrollIntoView({ behavior: "smooth" });
+  document.querySelector(hash)?.scrollIntoView({ behavior: "smooth" });
 }
 
 function irArriba(e: React.MouseEvent) {
@@ -17,22 +20,39 @@ function irArriba(e: React.MouseEvent) {
 }
 
 export default function Navbar() {
+  // Las secciones del foro solo existen en la portada. Desde las páginas
+  // legales el scroll suave no tiene a dónde ir, así que ahí los enlaces
+  // navegan a "/#seccion" en vez de intentar hacer scroll en la página actual.
+  const enPortada = usePathname() === "/";
+
   return (
     <nav className="site-nav">
-      <a href="#" onClick={irArriba} className="site-nav-logo">
-        <img src="/LOGO_AMPI.png" alt="AMPI Aguascalientes" />
-      </a>
+      {enPortada ? (
+        <a href="#" onClick={irArriba} className="site-nav-logo">
+          <img src="/LOGO_AMPI.png" alt="AMPI Aguascalientes, ir al inicio" />
+        </a>
+      ) : (
+        <Link href="/" className="site-nav-logo">
+          <img src="/LOGO_AMPI.png" alt="AMPI Aguascalientes, ir al inicio" />
+        </Link>
+      )}
 
       <div className="site-nav-links">
-        {ENLACES.map((link) => (
-          <a
-            key={link.href}
-            href={link.href}
-            onClick={(e) => irA(link.href, e)}
-          >
-            {link.label}
-          </a>
-        ))}
+        {ENLACES.map((link) =>
+          enPortada ? (
+            <a
+              key={link.hash}
+              href={link.hash}
+              onClick={(e) => irA(link.hash, e)}
+            >
+              {link.label}
+            </a>
+          ) : (
+            <Link key={link.hash} href={`/${link.hash}`}>
+              {link.label}
+            </Link>
+          )
+        )}
       </div>
 
       <style>{`

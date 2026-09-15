@@ -5,7 +5,6 @@ import AboutSection from "./components/AboutSection";
 import SpeakersSection from "./components/SpeakersSection";
 import TicketsSection from "./components/TicketsSection";
 import RegistrationSection from "./components/RegistrationSection";
-import Footer from "./components/Footer";
 
 export default function Home() {
   return (
@@ -17,7 +16,6 @@ export default function Home() {
       <AboutSection />
       <TicketsSection />
       <RegistrationSection />
-      <Footer />
     </main>
   );
 }

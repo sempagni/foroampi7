@@ -98,8 +98,17 @@ function enCola<T>(tarea: () => T): Promise<T> {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { nombre, correo, whatsapp, empresa, cargo, zona, cantidadBoletos, asistentes } =
-      body ?? {};
+    const {
+      nombre,
+      correo,
+      whatsapp,
+      empresa,
+      cargo,
+      zona,
+      cantidadBoletos,
+      asistentes,
+      aceptaTerminos,
+    } = body ?? {};
 
     const cantidad = Number(cantidadBoletos);
     const asistentesValidos =
@@ -116,7 +125,10 @@ export async function POST(request: Request) {
       typeof cargo !== "string" || !cargo.trim() ||
       (zona !== "A" && zona !== "B" && zona !== "C") ||
       !Number.isInteger(cantidad) || cantidad < 1 || cantidad > MAX_BOLETOS ||
-      !asistentesValidos
+      !asistentesValidos ||
+      // La casilla del formulario ya lo exige, pero sin esta comprobación el
+      // endpoint aceptaría un registro sin consentimiento hecho por fuera.
+      aceptaTerminos !== true
     ) {
       return NextResponse.json({ ok: false, error: "Datos inválidos" }, { status: 400 });
     }

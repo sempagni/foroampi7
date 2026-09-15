@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import FadeIn from "./FadeIn";
 import { ZONAS, type ZonaId } from "./TicketsSection";
@@ -28,6 +29,7 @@ type FormState = {
   zona: ZonaId;
   cantidadBoletos: number;
   asistentes: string[];
+  aceptaTerminos: boolean;
 };
 
 const INITIAL: FormState = {
@@ -41,6 +43,7 @@ const INITIAL: FormState = {
   zona: "A",
   cantidadBoletos: 1,
   asistentes: [],
+  aceptaTerminos: false,
 };
 
 const inputStyle: React.CSSProperties = {
@@ -140,6 +143,10 @@ export default function RegistrationSection() {
     if (!form.empresa.trim()) errs.empresa = "Escribe tu empresa";
     if (!form.cargo.trim()) errs.cargo = "Escribe tu cargo en la empresa";
 
+    if (!form.aceptaTerminos)
+      errs.aceptaTerminos =
+        "Debes aceptar el Aviso de Privacidad y los Términos y Condiciones para continuar";
+
     const nuevosErroresAsistentes = form.asistentes.map((n) =>
       !n.trim() ? "Escribe el nombre del asistente" : ""
     );
@@ -167,6 +174,7 @@ export default function RegistrationSection() {
           zona: form.zona,
           cantidadBoletos: form.cantidadBoletos,
           asistentes: form.asistentes,
+          aceptaTerminos: form.aceptaTerminos,
         }),
       });
       if (!res.ok) throw new Error("Respuesta no exitosa");
@@ -381,6 +389,32 @@ export default function RegistrationSection() {
               </div>
             )}
 
+            <div>
+              <label htmlFor="acepta" className="reg-acepta">
+                <input
+                  id="acepta"
+                  type="checkbox"
+                  checked={form.aceptaTerminos}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, aceptaTerminos: e.target.checked }))
+                  }
+                />
+                <span>
+                  He leído y acepto el{" "}
+                  <Link href="/aviso-privacidad" target="_blank">
+                    Aviso de Privacidad
+                  </Link>{" "}
+                  y los{" "}
+                  <Link href="/terminos-y-condiciones" target="_blank">
+                    Términos y Condiciones
+                  </Link>
+                </span>
+              </label>
+              {errores.aceptaTerminos && (
+                <p style={errorStyle}>{errores.aceptaTerminos}</p>
+              )}
+            </div>
+
             {errorEnvio && (
               <p style={{ color: "var(--accent-hover)", fontSize: "0.95rem" }}>
                 {errorEnvio}
@@ -584,6 +618,30 @@ export default function RegistrationSection() {
           display: grid;
           grid-template-columns: 2fr 1fr;
           gap: 1rem;
+        }
+        .reg-acepta {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.7rem;
+          cursor: pointer;
+          color: var(--text-body);
+          font-size: 0.95rem;
+          line-height: 1.6;
+          font-weight: 400;
+        }
+        .reg-acepta input {
+          /* 20px para que el area tactil cumpla el minimo comodo en movil */
+          width: 20px;
+          height: 20px;
+          margin-top: 0.15rem;
+          flex-shrink: 0;
+          accent-color: var(--accent);
+          cursor: pointer;
+        }
+        .reg-acepta a {
+          color: var(--accent-text);
+          text-decoration: underline;
+          text-underline-offset: 2px;
         }
         @media (max-width: 560px) {
           .reg-zona-cantidad-row {

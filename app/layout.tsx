@@ -5,6 +5,7 @@ import "./globals.css";
 import MountainWatermark from "./components/MountainWatermark";
 import PageBackground from "./components/PageBackground";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -68,6 +69,7 @@ export default function RootLayout({
         <MountainWatermark />
         <Navbar />
         {children}
+        <Footer />
       </body>
     </html>
   );
