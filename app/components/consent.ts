@@ -32,6 +32,20 @@ export function leerConsentimiento(): Consentimiento | null {
   }
 }
 
+// Cookies que pone fbevents.js en nuestro propio dominio: _fbp identifica al
+// navegador y _fbc guarda el clic del anuncio que trajo a la persona. Al ser
+// de primera parte, se pueden borrar desde aquí. Sin esto, quien acepta y
+// luego se arrepiente se queda con el identificador puesto: dejamos de mandar
+// eventos, pero la cookie sigue ahí.
+function borrarCookiesDeMeta() {
+  const dominio = window.location.hostname;
+  for (const nombre of ["_fbp", "_fbc"]) {
+    for (const ambito of ["", `; domain=${dominio}`, `; domain=.${dominio}`]) {
+      document.cookie = `${nombre}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${ambito}`;
+    }
+  }
+}
+
 export function guardarConsentimiento(valor: Consentimiento) {
   try {
     window.localStorage.setItem(CLAVE_CONSENTIMIENTO, valor);
@@ -39,6 +53,7 @@ export function guardarConsentimiento(valor: Consentimiento) {
     // Si no se puede guardar, la elección vale para esta visita y el banner
     // volverá a aparecer en la siguiente. Preferible a romper la página.
   }
+  if (valor === "rechazado") borrarCookiesDeMeta();
   window.dispatchEvent(
     new CustomEvent(EVENTO_CONSENTIMIENTO, { detail: valor })
   );
